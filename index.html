@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ดินสอสีฟ้า — อ่านมังงะออนไลน์ทุกตอน</title>
+  <meta name="description" content="ดินสอสีฟ้า มังงะรักวัยมัธยมของดาวินกับริว อ่านฟรีครบทั้ง 8 ตอน เว็บไซต์โดย DVN7DAZY">
+  <meta name="theme-color" content="#0a4fd6">
+  <meta property="og:title" content="ดินสอสีฟ้า — อ่านมังงะครบทุกตอน">
+  <meta property="og:description" content="เรื่องราวแปดเดือนสุดท้ายก่อนจบมัธยมของดาวินกับริว">
+  <meta property="og:image" content="assets/covers/ep1.webp">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script type="importmap">
+  { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  } }
+  </script>
+</head>
+<body class="home">
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+
+  <header class="gnav">
+    <nav class="gnav-inner" aria-label="เมนูหลัก">
+      <a class="gnav-logo" href="./" aria-label="ดินสอสีฟ้า หน้าแรก">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.2-4.6L15.6 5a2 2 0 0 1 2.8 0l.6.6a2 2 0 0 1 0 2.8L8.6 18.8z" fill="currentColor"/><path d="M4 20l4.6-1.2L5.2 15.4z" fill="currentColor" opacity=".45"/></svg>
+        <span>ดินสอสีฟ้า</span>
+      </a>
+      <ul class="gnav-menu">
+        <li><a href="#episodes">ตอนทั้งหมด</a></li>
+        <li><a href="#shelf">ชั้นหนังสือ 3D</a></li>
+        <li><a href="#characters">ตัวละคร</a></li>
+        <li><a href="#about">เกี่ยวกับ</a></li>
+        <li><a href="#" data-continue>อ่านต่อ</a></li>
+      </ul>
+      <div class="gnav-tools">
+        <span class="visit-pill" data-visits-wrap title="จำนวนผู้เข้าชมทั้งหมด">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5C6.5 5 2.7 9.2 1.5 12c1.2 2.8 5 7 10.5 7s9.3-4.2 10.5-7C21.3 9.2 17.5 5 12 5zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8z" fill="currentColor"/></svg>
+          <b data-visits>…</b>
+        </span>
+        <button class="icon-btn" data-theme-toggle aria-label="สลับโหมดสว่าง/มืด">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z" fill="currentColor"/></svg>
+        </button>
+        <button class="icon-btn gnav-burger" aria-label="เปิดเมนู" aria-expanded="false"><span></span><span></span></button>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <!-- HERO แบบหน้าร้าน Apple -->
+    <section class="hero wrap">
+      <div class="hero-head" data-reveal>
+        <h1>ดินสอสีฟ้า<span class="dot">.</span></h1>
+        <div class="hero-side">
+          <p><strong>วิธีที่ดีที่สุดในการอ่าน</strong><br>เรื่องราวของดาวินกับริว ครบทั้ง 8 ตอน อ่านฟรีได้ทุกอุปกรณ์</p>
+          <a class="link-arrow" href="read.html?ep=1">เริ่มอ่านตอนที่ 1</a>
+          <a class="link-arrow" href="#" data-continue>อ่านต่อจากที่ค้างไว้</a>
+        </div>
+      </div>
+
+      <div class="stage" id="stage" data-reveal>
+        <canvas id="hero3d" aria-label="ดินสอสีฟ้าสามมิติ ล้อมรอบด้วยปกทุกตอน แตะปกเพื่ออ่าน"></canvas>
+        <div class="stage-fallback" aria-hidden="true">
+          <img src="assets/covers/ep1.webp" alt=""><img src="assets/covers/ep4.webp" alt=""><img src="assets/covers/ep8.webp" alt="">
+        </div>
+        <div class="stage-tip" id="stage-tip" role="status"></div>
+        <p class="stage-hint">ลากหรือขยับเมาส์เพื่อหมุนดู · แตะปกเพื่อเริ่มอ่าน</p>
+      </div>
+
+      <!-- แถวไอคอนตอน (เหมือนแถวสินค้าของ Apple Store) -->
+      <div class="chips" id="chips" role="list" data-reveal></div>
+    </section>
+
+    <!-- ตอนทั้งหมด: การ์ดเลื่อนแนวนอน -->
+    <section class="shelf-row" id="episodes">
+      <div class="wrap">
+        <h2 class="row-title" data-reveal><span>ตอนทั้งหมด.</span> เรื่องราวแปดเดือนสุดท้ายก่อนจบมัธยม</h2>
+      </div>
+      <div class="scroller" data-scroller>
+        <div class="track" id="ep-track"></div>
+      </div>
+      <div class="wrap scroller-nav">
+        <button class="round-btn" data-scroll="-1" aria-label="เลื่อนซ้าย">‹</button>
+        <button class="round-btn" data-scroll="1" aria-label="เลื่อนขวา">›</button>
+      </div>
+    </section>
+
+    <!-- ชั้นหนังสือ 3 มิติ -->
+    <section class="ring-sec" id="shelf">
+      <div class="wrap">
+        <h2 class="row-title" data-reveal><span>ชั้นหนังสือ 3D.</span> หมุน ลาก แล้วเลือกตอนที่ชอบ</h2>
+      </div>
+      <div class="ring-stage" id="ring-stage" data-reveal>
+        <div class="ring" id="ring"></div>
+      </div>
+      <div class="ring-caption" id="ring-caption" aria-live="polite"></div>
+    </section>
+
+    <!-- ความแตกต่าง -->
+    <section class="shelf-row" id="about">
+      <div class="wrap">
+        <h2 class="row-title" data-reveal><span>อ่านที่นี่ดีกว่ายังไง.</span> ออกแบบมาให้อ่านลื่นเหมือนแอปเว็บตูน</h2>
+      </div>
+      <div class="scroller" data-scroller>
+        <div class="track feats">
+          <article class="feat" data-tilt data-reveal>
+            <div class="feat-ic">⇣</div><h3>เลื่อนอ่านยาวต่อเนื่อง</h3><p>หน้าเรียงต่อกันแนวตั้งแบบเว็บตูน ไม่ต้องกดเปลี่ยนหน้า</p>
+          </article>
+          <article class="feat" data-tilt data-reveal>
+            <div class="feat-ic">↺</div><h3>จำตอนที่อ่านค้าง</h3><p>กลับมาเมื่อไหร่ก็อ่านต่อได้ทันทีจากหน้าเดิม</p>
+          </article>
+          <article class="feat" data-tilt data-reveal>
+            <div class="feat-ic">▭</div><h3>อ่านได้ทุกหน้าจอ</h3><p>คอมพิวเตอร์ มือถือ ไอแพด ปรับขนาดให้พอดีเองอัตโนมัติ</p>
+          </article>
+          <article class="feat" data-tilt data-reveal>
+            <div class="feat-ic">◐</div><h3>โหมดกลางคืน</h3><p>สลับโทนสว่างหรือมืดได้ อ่านตอนดึกก็ไม่แสบตา</p>
+          </article>
+          <article class="feat" data-tilt data-reveal>
+            <div class="feat-ic">✎</div><h3>ฟรีครบ 8 ตอน</h3><p>95 หน้าเต็ม ตั้งแต่สิงหาคมจนถึงวันศุกร์ที่ 13</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ตัวละคร -->
+    <section class="chars wrap" id="characters">
+      <h2 class="row-title" data-reveal><span>ตัวละคร.</span> คนที่ทำให้ทุกเดือนมีความหมาย</h2>
+      <div class="char-grid" id="char-grid"></div>
+    </section>
+
+    <!-- สถิติ -->
+    <section class="stats wrap" data-reveal>
+      <div class="stat big" data-visits-wrap>
+        <span class="stat-num" data-visits>…</span>
+        <span class="stat-label">ผู้เข้าชมเว็บไซต์ทั้งหมด</span>
+      </div>
+      <div class="stat"><span class="stat-num">8</span><span class="stat-label">ตอน</span></div>
+      <div class="stat"><span class="stat-num" id="total-pages">95</span><span class="stat-label">หน้า</span></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <p class="credit">ออกแบบและพัฒนาเว็บไซต์โดย <strong>DVN7DAZY</strong></p>
+      <p>มังงะเรื่อง “ดินสอสีฟ้า” · ผู้เข้าชมแล้ว <b data-visits>…</b> คน</p>
+      <p class="fine">© <span data-year>2026</span> DVN7DAZY สงวนลิขสิทธิ์ ห้ามนำภาพหรือเนื้อหาไปเผยแพร่ต่อโดยไม่ได้รับอนุญาต</p>
+    </div>
+  </footer>
+
+  <dialog class="ep-modal" id="ep-modal" aria-labelledby="m-title">
+    <button class="modal-close" data-close aria-label="ปิด">×</button>
+    <div class="m-cover"><img id="m-cover" alt=""></div>
+    <div class="m-body">
+      <p class="eyebrow" id="m-eyebrow"></p>
+      <h3 id="m-title"></h3>
+      <p class="m-hook" id="m-hook"></p>
+      <p id="m-syn"></p>
+      <p class="m-meta" id="m-meta"></p>
+      <div class="m-actions">
+        <a class="btn" id="m-read" href="#">อ่านตอนนี้</a>
+        <button class="btn ghost" data-close>ไว้ทีหลัง</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script type="module" src="assets/js/home.js"></script>
+  <script type="module" src="assets/js/hero3d.js"></script>
+</body>
+</html>

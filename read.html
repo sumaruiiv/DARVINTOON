@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>อ่าน — ดินสอสีฟ้า</title>
+  <meta name="description" content="อ่านมังงะ ดินสอสีฟ้า แบบเลื่อนยาวต่อเนื่อง">
+  <meta name="theme-color" content="#061433">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="reader">
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+  <div class="r-progress" aria-hidden="true"><span id="r-bar"></span></div>
+
+  <header class="r-top" id="r-top">
+    <a class="r-back" href="./" aria-label="กลับหน้าแรก">‹ <span>ดินสอสีฟ้า</span></a>
+    <div class="r-title" id="r-title"></div>
+    <div class="r-tools">
+      <span class="visit-pill" data-visits-wrap title="จำนวนผู้เข้าชมทั้งหมด">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5C6.5 5 2.7 9.2 1.5 12c1.2 2.8 5 7 10.5 7s9.3-4.2 10.5-7C21.3 9.2 17.5 5 12 5zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8z" fill="currentColor"/></svg>
+        <b data-visits>…</b>
+      </span>
+      <button class="icon-btn" data-theme-toggle aria-label="สลับโหมดสว่าง/มืด"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z" fill="currentColor"/></svg></button>
+      <button class="icon-btn" id="r-list-btn" aria-label="รายการตอน" aria-controls="r-drawer" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="r-main">
+    <section class="r-intro" id="r-intro"></section>
+    <div class="r-pages" id="r-pages" aria-label="หน้าการ์ตูน"></div>
+    <section class="r-end" id="r-end"></section>
+    <footer class="footer r-foot">
+      <p class="credit">ออกแบบและพัฒนาเว็บไซต์โดย <strong>DVN7DAZY</strong></p>
+      <p class="fine">ผู้เข้าชมแล้ว <b data-visits>…</b> คน · © <span data-year>2026</span> DVN7DAZY</p>
+    </footer>
+  </main>
+
+  <nav class="r-bottom" id="r-bottom" aria-label="ควบคุมการอ่าน">
+    <a class="r-btn" id="r-prev" aria-label="ตอนก่อนหน้า">‹ <span>ตอนก่อน</span></a>
+    <button class="r-count" id="r-count" aria-label="กลับขึ้นบนสุด"></button>
+    <a class="r-btn" id="r-next" aria-label="ตอนถัดไป"><span>ตอนถัดไป</span> ›</a>
+  </nav>
+
+  <aside class="r-drawer" id="r-drawer" aria-label="รายการตอนทั้งหมด" hidden>
+    <div class="r-drawer-head"><h2>ตอนทั้งหมด</h2><button class="icon-btn" id="r-close" aria-label="ปิด">×</button></div>
+    <ol class="r-list" id="r-list"></ol>
+  </aside>
+  <div class="r-scrim" id="r-scrim" hidden></div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script type="module" src="assets/js/reader.js"></script>
+</body>
+</html>
