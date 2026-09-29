@@ -24,13 +24,19 @@ const JASMINE = `<svg viewBox="0 0 200 190" class="jasmine" aria-hidden="true">
   <path d="M88 172 q13 -8 26 0 q-13 10 -26 0z" fill="#1f6bff"/><path d="M101 172 l-12 16 M101 172 l12 16" stroke="#1f6bff" stroke-width="4" stroke-linecap="round"/>
 </svg>`;
 const UMBRELLA = `<svg viewBox="0 0 200 230" class="umbrella" aria-hidden="true">
-  <defs><linearGradient id="ug" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5cc2ff"/><stop offset="1" stop-color="#0a4fd6"/></linearGradient></defs>
-  <path d="M100 30 L100 196" stroke="#23324f" stroke-width="4"/>
-  <path d="M100 196 q0 20 -16 20 q-14 0 -14 -14" stroke="#23324f" stroke-width="7" fill="none" stroke-linecap="round"/>
-  <path d="M14 110 Q100 -10 186 110 Q165 96 143 110 Q121 96 100 110 Q79 96 57 110 Q35 96 14 110Z" fill="url(#ug)"/>
-  <path d="M100 26 Q70 60 57 110 M100 26 Q86 60 79 104 M100 26 Q130 60 143 110 M100 26 Q114 60 121 104" stroke="rgba(255,255,255,.45)" stroke-width="2" fill="none"/>
-  <path d="M40 70 Q70 30 100 26" stroke="rgba(255,255,255,.6)" stroke-width="5" fill="none" stroke-linecap="round"/>
-  <circle cx="100" cy="24" r="5" fill="#23324f"/>
+  <defs>
+    <linearGradient id="ug" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fcbff"/><stop offset="1" stop-color="#1a5fd8"/></linearGradient>
+    <linearGradient id="ug2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3aa6f5"/><stop offset="1" stop-color="#0d45b0"/></linearGradient>
+  </defs>
+  <path d="M100 112 L100 198" stroke="#1b2a4a" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M100 196 q0 22 -16 22 q-14 0 -14 -13" stroke="#1b2a4a" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <path d="M16 112 C22 60 58 26 100 24 C142 26 178 60 184 112 Q163 98 142 112 Q121 98 100 112 Q79 98 58 112 Q37 98 16 112Z" fill="url(#ug)"/>
+  <path d="M100 24 Q66 46 58 112 Q79 98 100 112Z" fill="url(#ug2)"/>
+  <path d="M100 24 Q134 46 142 112 Q163 98 184 112 C178 60 142 26 100 24Z" fill="url(#ug2)"/>
+  <path d="M100 24 Q66 46 58 112 M100 24 L100 112 M100 24 Q134 46 142 112" stroke="rgba(255,255,255,.35)" stroke-width="1.6" fill="none"/>
+  <path d="M34 94 C38 66 60 44 88 36" stroke="rgba(255,255,255,.55)" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <g fill="#1b2a4a"><circle cx="16" cy="112" r="2.6"/><circle cx="58" cy="112" r="2.6"/><circle cx="100" cy="112" r="2.6"/><circle cx="142" cy="112" r="2.6"/><circle cx="184" cy="112" r="2.6"/></g>
+  <path d="M100 24 L100 11" stroke="#1b2a4a" stroke-width="3.5" stroke-linecap="round"/><circle cx="100" cy="10" r="3.6" fill="#1b2a4a"/>
 </svg>`;
 const PUMPKIN = `<svg viewBox="0 0 200 170" class="pumpkin" aria-hidden="true">
   <defs><radialGradient id="pk" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#ffb05a"/><stop offset="1" stop-color="#d9581a"/></radialGradient>

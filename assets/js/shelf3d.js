@@ -219,8 +219,17 @@ function start() {
   filler(x, floors[2], { w: 0.22 }); x += 0.24;
   [3, 4].forEach((n) => { epBook(n, x, floors[2]); x += 0.38; });
   filler(x, floors[2], { w: 0.3 }); x += 0.32;
-  filler(x, floors[2], { w: 0.28 }); x += 0.3;
-  filler(x + 0.12, floors[2], { w: 0.3, lean: -0.28 });
+  // หนังสือเล่มสุดท้ายเอียงพิงเล่มข้างๆ ทางซ้าย (มุมล่างซ้ายแตะพื้นชั้น ขอบซ้ายพิงมุมบนของเล่มข้างๆ)
+  const nH = comp * 0.74, nW = 0.28;
+  filler(x, floors[2], { w: nW, h: nH }); x += nW;
+  {
+    const w = 0.3, h = comp * 0.82, th = 0.3;
+    const lean = filler(0, floors[2], { w, h });
+    const px = x + 0.004 + (h * Math.cos(th) < nH ? h * Math.sin(th) : nH * Math.tan(th));
+    lean.rotation.z = th;
+    lean.position.x = px + (w / 2) * Math.cos(th) - (h / 2) * Math.sin(th);
+    lean.position.y = floors[2] + (w / 2) * Math.sin(th) + (h / 2) * Math.cos(th);
+  }
   // ชั้นกลาง: ตอน 5-8
   x = x0 + 1.1;
   filler(x, floors[1], { w: 0.34 }); x += 0.36;
@@ -249,16 +258,50 @@ function start() {
     p.scale.setScalar(0.17); p.position.set(dx, 0.35, dx * 0.5); p.rotation.set(tilt * 0.5, i, tilt);
     cupG.add(p);
   });
-  const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.26, 0.5, 32), new THREE.MeshStandardMaterial({ color: 0xeaf2ff, roughness: 0.5 }));
-  pot.position.set(SW / 2 - T - 0.62, floors[0] + 0.25, 0.1); pot.castShadow = true; shelf.add(pot);
-  const leafMat = new THREE.MeshStandardMaterial({ color: 0x3f9a6b, roughness: 0.6 });
-  for (let i = 0; i < 9; i++) {
-    const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 10), leafMat);
-    const a = (i / 9) * Math.PI * 2;
-    leaf.scale.set(0.55, 1.6, 0.3);
-    leaf.position.set(pot.position.x + Math.cos(a) * 0.14, floors[0] + 0.72 + (i % 3) * 0.08, 0.1 + Math.sin(a) * 0.14);
-    leaf.rotation.set(Math.sin(a) * 0.6, a, Math.cos(a) * 0.6);
-    leaf.castShadow = true; shelf.add(leaf);
+  // กระถางเซรามิก + ดิน + ใบไม้ทรงใบจริง (โค้งตามธรรมชาติ แผ่ออกเป็นพุ่ม)
+  const potX = SW / 2 - T - 0.62, potZ = 0.1;
+  const potProfile = [[0, 0], [0.25, 0], [0.27, 0.02], [0.33, 0.44], [0.36, 0.46], [0.36, 0.52], [0.31, 0.52], [0.3, 0.47], [0, 0.47]].map(([r, y]) => new THREE.Vector2(r, y));
+  const pot = new THREE.Mesh(new THREE.LatheGeometry(potProfile, 40), new THREE.MeshPhysicalMaterial({ color: 0xeef4ff, roughness: 0.35, clearcoat: 0.6 }));
+  pot.position.set(potX, floors[0], potZ); pot.castShadow = true; shelf.add(pot);
+  const soil = new THREE.Mesh(new THREE.CircleGeometry(0.3, 32), new THREE.MeshStandardMaterial({ color: 0x3b2618, roughness: 1 }));
+  soil.rotation.x = -Math.PI / 2; soil.position.set(potX, floors[0] + 0.46, potZ); shelf.add(soil);
+  function leafGeometry(len, wid) {
+    const sh = new THREE.Shape();
+    sh.moveTo(0, 0);
+    sh.bezierCurveTo(wid * 0.9, len * 0.18, wid * 0.75, len * 0.72, 0, len);
+    sh.bezierCurveTo(-wid * 0.75, len * 0.72, -wid * 0.9, len * 0.18, 0, 0);
+    const g = new THREE.ShapeGeometry(sh, 14);
+    const pos = g.attributes.position, col = [];
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), y = pos.getY(i), t = y / len;
+      pos.setZ(i, Math.abs(x) * 0.45 - t * t * len * 0.35);   // พับตามเส้นกลางใบ + ปลายใบโค้งลู่ลงออกด้านนอก
+      const c = new THREE.Color().setHSL(0.36, 0.5, 0.2 + t * 0.14 + (Math.abs(x) < 0.008 ? 0.1 : 0));
+      col.push(c.r, c.g, c.b);
+    }
+    g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+    g.computeVertexNormals();
+    return g;
+  }
+  const leafMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, side: THREE.DoubleSide });
+  const stemMat = new THREE.MeshStandardMaterial({ color: 0x3f7f4f, roughness: 0.7 });
+  const plant = new THREE.Group();
+  plant.position.set(potX, floors[0] + 0.45, potZ);
+  shelf.add(plant);
+  const NL = 11;
+  for (let i = 0; i < NL; i++) {
+    const a = i * 2.39996 + 0.3, inner = i < 4;
+    const len = inner ? 0.62 + (i % 2) * 0.08 : 0.46 + (i % 3) * 0.07;
+    const stemH = inner ? 0.2 : 0.08;
+    const holder = new THREE.Group();
+    holder.rotation.y = a;
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.016, stemH, 6), stemMat);
+    stem.position.y = stemH / 2; holder.add(stem);
+    const leaf = new THREE.Mesh(leafGeometry(len, 0.2 + (i % 3) * 0.025), leafMat);
+    leaf.position.y = stemH;
+    leaf.rotation.x = -(inner ? 0.25 + (i % 2) * 0.15 : 0.75 + (i % 3) * 0.18);  // เอนออกจากกลางพุ่ม
+    leaf.castShadow = true;
+    holder.add(leaf);
+    plant.add(holder);
   }
 
   /* พื้นรับเงา */

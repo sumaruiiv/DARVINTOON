@@ -57,6 +57,7 @@
         <li><a href="#calendar">ปฏิทิน</a></li>
         <li><a href="#shelf">ชั้นหนังสือ 3D</a></li>
         <li><a href="#characters">ตัวละคร</a></li>
+        <li><a href="#standee">สแตนดี้</a></li>
         <li><a href="#about">เกี่ยวกับ</a></li>
         <li><a href="#" data-continue>อ่านต่อ</a></li>
         <li><a href="#" class="gnav-donate" data-donate>โดเนท 💙</a></li>
@@ -81,6 +82,7 @@
         <h1>DARVIN-CHERCI<span class="dot">.</span></h1>
         <div class="hero-side">
           <p><strong>วิธีที่ดีที่สุดในการอ่าน “ดินสอสีฟ้า”</strong><br>เรื่องราวของดาวินกับริว ครบทั้ง 8 ตอน อ่านฟรีได้ทุกอุปกรณ์</p>
+          <p class="ai-note">(มังงะเรื่อง “ดินสอสี(ฟ้า)” เป็นมังงะที่ใช้เอไอช่วยในการทำ โปรดใช้วิจารณญาณในการอ่านด้วยคั้บ)</p>
         </div>
       </div>
 
@@ -195,6 +197,19 @@
       <div class="char-grid" id="char-grid"></div>
     </section>
 
+    <!-- สแตนดี้ 3D -->
+    <section class="standee-sec wrap" id="standee">
+      <h2 class="row-title" data-reveal><span>สแตนดี้ 3D.</span> ลากหมุนดูรอบตัว 360° · ปัดแรงๆ ให้หมุน 2-3 รอบเพื่อเปลี่ยนชุด</h2>
+      <div class="standee-stage" id="standee-stage" data-reveal>
+        <canvas id="standee3d" aria-label="สแตนดี้อะคริลิกสามมิติของริวและดาวิน ลากเพื่อหมุน ปัดแรงๆ เพื่อเปลี่ยนชุด"></canvas>
+        <div class="sd-labels">
+          <div class="sd-label" data-sd="riw"><b>ริว</b><span class="sd-outfit" data-outfit>ชุดนักเรียน</span><button type="button" class="sd-btn" data-change="riw" aria-label="เปลี่ยนชุดริว">⟳</button></div>
+          <div class="sd-label" data-sd="davin"><b>ดาวิน</b><span class="sd-outfit" data-outfit>ชุดนักเรียน</span><button type="button" class="sd-btn" data-change="davin" aria-label="เปลี่ยนชุดดาวิน">⟳</button></div>
+        </div>
+        <p class="stage-hint">ชุดนักเรียน → ชุดพละ → ชุด รด. (เฉพาะริว) → ชุดพื้นเมือง</p>
+      </div>
+    </section>
+
     <!-- สถิติ -->
     <section class="stats wrap" data-reveal>
       <div class="stat big" data-visits-wrap>
@@ -248,5 +263,6 @@
   <script type="module" src="assets/js/calendar.js"></script>
   <script type="module" src="assets/js/hero3d.js"></script>
   <script type="module" src="assets/js/shelf3d.js"></script>
+  <script type="module" src="assets/js/standee3d.js"></script>
 </body>
 </html>
