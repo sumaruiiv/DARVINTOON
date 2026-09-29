@@ -1,17 +1,176 @@
-// ฉากสามมิติบนหน้าแรก: ดินสอกดสีฟ้าลอยหมุน ล้อมด้วยปกทุกตอน แตะปกเพื่อเปิดอ่าน
+// ฉากสามมิติหน้าแรก: กระเป๋าดินสอมีซิปหมุนอยู่กลางจอ
+// ลากซิป (ปัดซ้าย-ขวา) หรือแตะที่กระเป๋าเพื่อเปิด → ดินสอกดสีฟ้าลอยออกมาพร้อมปกทุกตอน แตะปกเพื่ออ่าน
 import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { EPISODES } from "./data.js";
+import { makePencil } from "./pencil3d.js";
+import { go } from "./common.js";
 
 const canvas = document.getElementById("hero3d");
 const stage = document.getElementById("stage");
 const tip = document.getElementById("stage-tip");
+const cue = document.getElementById("stage-cue");
+const btn = document.getElementById("case-btn");
+const hintEl = document.getElementById("stage-hint");
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-function fail() { stage.classList.add("no-webgl"); }
+const clamp01 = (v) => Math.min(1, Math.max(0, v));
+const smooth = (v) => { v = clamp01(v); return v * v * (3 - 2 * v); };
+const backOut = (v) => { v = clamp01(v); const c = 1.4; return 1 + (c + 1) * Math.pow(v - 1, 3) + c * Math.pow(v - 1, 2); };
+const lerp = (a, b, k) => a + (b - a) * k;
 
-try { start(); } catch (err) { console.warn("3D disabled:", err); fail(); }
 
+/* ---------- ลายผ้าและฟันซิป (วาดด้วย canvas) ---------- */
+function weaveTexture() {
+  const c = document.createElement("canvas"); c.width = c.height = 128;
+  const x = c.getContext("2d");
+  x.fillStyle = "#808080"; x.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 128; i += 4) {
+    x.fillStyle = i % 8 ? "#8c8c8c" : "#737373"; x.fillRect(i, 0, 2, 128);
+    x.fillStyle = i % 8 ? "rgba(255,255,255,.06)" : "rgba(0,0,0,.06)"; x.fillRect(0, i, 128, 2);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(10, 4);
+  return t;
+}
+function teethTexture() {
+  const c = document.createElement("canvas"); c.width = 32; c.height = 16;
+  const x = c.getContext("2d");
+  x.fillStyle = "#23324f"; x.fillRect(0, 0, 32, 16);
+  const g = x.createLinearGradient(0, 0, 0, 16);
+  g.addColorStop(0, "#f6f9ff"); g.addColorStop(0.5, "#a9b8cf"); g.addColorStop(1, "#eef3fb");
+  x.fillStyle = g; x.fillRect(3, 1, 11, 14); x.fillRect(19, 1, 11, 14);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(170, 1);
+  return t;
+}
+function labelTexture(text) {
+  const c = document.createElement("canvas"); c.width = 1024; c.height = 180;
+  const x = c.getContext("2d");
+  x.textAlign = "center"; x.textBaseline = "middle";
+  x.font = "800 104px Inter, Arial, sans-serif";
+  x.lineWidth = 14; x.strokeStyle = "rgba(10,50,140,.55)"; x.lineJoin = "round";
+  x.strokeText(text, 512, 92);
+  x.fillStyle = "#ffffff"; x.fillText(text, 512, 92);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+
+/* ---------- เส้นขอบสี่เหลี่ยมมุมมน (ใช้เป็นแนวซิป) ---------- */
+function roundedRectPath(hw, hd, r) {
+  const s = new THREE.Shape();
+  s.moveTo(0, hd);
+  s.lineTo(hw - r, hd); s.absarc(hw - r, hd - r, r, Math.PI / 2, 0, true);
+  s.lineTo(hw, -hd + r); s.absarc(hw - r, -hd + r, r, 0, -Math.PI / 2, true);
+  s.lineTo(-hw + r, -hd); s.absarc(-hw + r, -hd + r, r, -Math.PI / 2, -Math.PI, true);
+  s.lineTo(-hw, hd - r); s.absarc(-hw + r, hd - r, r, Math.PI, Math.PI / 2, true);
+  s.lineTo(0, hd);
+  return s;
+}
+class FlatCurve extends THREE.Curve {
+  constructor(path, y) { super(); this.path = path; this.y = y; }
+  getPoint(t, target = new THREE.Vector3()) { const p = this.path.getPointAt(((t % 1) + 1) % 1); return target.set(p.x, this.y, p.y); }
+}
+function roundedPlane(w, h, r) {
+  const g = new THREE.ShapeGeometry(roundedRectPath(w / 2, h / 2, r), 16);
+  return g;
+}
+
+/* ---------- กระเป๋าดินสอ ---------- */
+function buildCase() {
+  const W = 4.4, H = 0.62, D = 1.46, R = 0.27;
+  const root = new THREE.Group();
+  const fabric = new THREE.MeshPhysicalMaterial({
+    color: 0x1a5fd8, roughness: 0.7, sheen: 0.45, sheenRoughness: 0.5, sheenColor: new THREE.Color(0xbfdcff), envMapIntensity: 0.55,
+    bumpMap: weaveTexture(), bumpScale: 0.9,
+  });
+  const lining = new THREE.MeshStandardMaterial({ color: 0x0b2766, roughness: 1, side: THREE.DoubleSide });
+  const tape = new THREE.MeshStandardMaterial({ color: 0x143a8c, roughness: 0.9 });
+  const teeth = new THREE.MeshStandardMaterial({ map: teethTexture(), metalness: 0.55, roughness: 0.35 });
+  const chrome = new THREE.MeshStandardMaterial({ color: 0xeef3fa, metalness: 1, roughness: 0.15 });
+
+  const base = new THREE.Mesh(new RoundedBoxGeometry(W, H, D, 6, R), fabric);
+  base.position.y = -H / 2;
+  root.add(base);
+  const baseLining = new THREE.Mesh(roundedPlane(W - 0.28, D - 0.28, R - 0.1), lining);
+  baseLining.rotation.x = -Math.PI / 2; baseLining.position.y = 0.004;
+  root.add(baseLining);
+
+  const hinge = new THREE.Group();
+  hinge.position.set(0, 0, -D / 2 + 0.05);
+  root.add(hinge);
+  const lid = new THREE.Group();
+  lid.position.set(0, 0, D / 2 - 0.05);
+  hinge.add(lid);
+  const lidBox = new THREE.Mesh(new RoundedBoxGeometry(W, H, D, 6, R), fabric);
+  lidBox.position.y = H / 2;
+  lid.add(lidBox);
+  const lidLining = new THREE.Mesh(roundedPlane(W - 0.28, D - 0.28, R - 0.1), lining);
+  lidLining.rotation.x = Math.PI / 2; lidLining.position.y = -0.004;
+  lid.add(lidLining);
+  const label = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.46), new THREE.MeshBasicMaterial({ map: labelTexture("DARVIN-CHERCI"), transparent: true, depthWrite: false }));
+  label.rotation.x = -Math.PI / 2; label.position.y = H + 0.003;
+  lid.add(label);
+
+  // ซิป: เทปผ้า + ฟันซิป แยกเป็นครึ่งล่าง (ติดตัวกระเป๋า) และครึ่งบน (ติดฝา)
+  const path = roundedRectPath(W / 2 - 0.12, D / 2 - 0.12, R - 0.08);
+  const mkRow = (y, parent, off = new THREE.Vector3()) => {
+    const tp = new THREE.Mesh(new THREE.TubeGeometry(new FlatCurve(path, y), 400, 0.062, 8, true), tape);
+    const th = new THREE.Mesh(new THREE.TubeGeometry(new FlatCurve(path, y), 400, 0.048, 8, true), teeth);
+    tp.position.copy(off); th.position.copy(off);
+    th.scale.set(1.012, 1, 1.03);
+    parent.add(tp, th);
+  };
+  mkRow(-0.03, root);
+  mkRow(0.03, lid);
+
+  // หัวซิป + แถบดึง + จี้หัวใจ
+  const slider = new THREE.Group();
+  const sBody = new THREE.Mesh(new RoundedBoxGeometry(0.26, 0.16, 0.12, 3, 0.04), chrome);
+  slider.add(sBody);
+  const tabShape = new THREE.Shape();
+  const tw = 0.1, th = 0.42;
+  tabShape.moveTo(-tw, 0); tabShape.lineTo(tw, 0); tabShape.lineTo(tw * 0.8, -th); tabShape.quadraticCurveTo(0, -th - 0.1, -tw * 0.8, -th); tabShape.closePath();
+  const hole = new THREE.Path(); hole.absellipse(0, -th * 0.72, 0.035, 0.06, 0, Math.PI * 2, true); tabShape.holes.push(hole);
+  const pull = new THREE.Mesh(new THREE.ExtrudeGeometry(tabShape, { depth: 0.03, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.01, bevelSegments: 2 }), chrome);
+  const pullPivot = new THREE.Group();
+  pullPivot.position.set(0, -0.04, 0.07);
+  pullPivot.add(pull);
+  slider.add(pullPivot);
+  const heart = new THREE.Shape();
+  heart.moveTo(0, -0.1); heart.bezierCurveTo(0.03, -0.07, 0.12, -0.02, 0.1, 0.05); heart.bezierCurveTo(0.085, 0.1, 0.02, 0.1, 0, 0.05);
+  heart.bezierCurveTo(-0.02, 0.1, -0.085, 0.1, -0.1, 0.05); heart.bezierCurveTo(-0.12, -0.02, -0.03, -0.07, 0, -0.1);
+  const charm = new THREE.Mesh(new THREE.ExtrudeGeometry(heart, { depth: 0.04, bevelEnabled: true, bevelThickness: 0.025, bevelSize: 0.02, bevelSegments: 4 }),
+    new THREE.MeshPhysicalMaterial({ color: 0x8fd0ff, roughness: 0.15, clearcoat: 1, metalness: 0.1 }));
+  charm.scale.setScalar(1.35);
+  charm.position.set(0, -th - 0.19, 0.01);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.009, 8, 20), chrome);
+  ring.position.set(0, -th * 0.72 - 0.05, 0.015); ring.rotation.y = Math.PI / 2;
+  pullPivot.add(charm, ring);
+  root.add(slider);
+
+  const center = new THREE.Vector3();
+  const pos = new THREE.Vector3(), tan = new THREE.Vector3(), nrm = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  const m4 = new THREE.Matrix4();
+  function placeSlider(t, swing) {
+    const p = path.getPointAt(((t % 1) + 1) % 1), p2 = path.getPointAt((((t + 0.002) % 1) + 1) % 1);
+    pos.set(p.x, 0, p.y);
+    tan.set(p2.x - p.x, 0, p2.y - p.y).normalize();
+    nrm.crossVectors(tan, up).normalize();
+    if (nrm.dot(pos.clone().sub(center)) < 0) { nrm.negate(); tan.negate(); }
+    m4.makeBasis(tan, up, nrm);
+    slider.quaternion.setFromRotationMatrix(m4);
+    slider.position.copy(pos).addScaledVector(nrm, 0.07);
+    pullPivot.rotation.x = 0.18 + swing;
+  }
+  placeSlider(0.1, 0);
+  const pickables = [base, lidBox, sBody, pull, charm];
+  return { root, hinge, placeSlider, pickables, H };
+}
+
+/* ---------- ฉาก ---------- */
 function start() {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -22,72 +181,42 @@ function start() {
   const scene = new THREE.Scene();
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-
   const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-  camera.position.set(0, 0.3, 10);
-
+  camera.position.set(0, 0.4, 10);
   scene.add(new THREE.AmbientLight(0xbcd4ff, 0.6));
-  const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(4, 6, 5); scene.add(key);
+  const key = new THREE.DirectionalLight(0xffffff, 2.1); key.position.set(4, 6, 5); scene.add(key);
   const rim = new THREE.PointLight(0x4aa8ff, 30, 20); rim.position.set(-4, -1, 3); scene.add(rim);
 
-  /* ---------- ดินสอกด ---------- */
-  const pencil = new THREE.Group();
-  const blue = new THREE.MeshPhysicalMaterial({ color: 0x1f6bff, metalness: 0.25, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.08 });
-  const navy = new THREE.MeshStandardMaterial({ color: 0x0b1f4d, roughness: 0.75 });
-  const chrome = new THREE.MeshStandardMaterial({ color: 0xdfe8f5, metalness: 1, roughness: 0.18 });
-  const lead = new THREE.MeshStandardMaterial({ color: 0x222831, roughness: 0.5 });
-  const eraser = new THREE.MeshStandardMaterial({ color: 0xf4f7ff, roughness: 0.9 });
-  const add = (geo, mat, y, extra) => { const m = new THREE.Mesh(geo, mat); m.position.y = y; extra?.(m); pencil.add(m); return m; };
-  add(new THREE.CylinderGeometry(0.3, 0.3, 3.6, 64), blue, 0.55);
-  add(new THREE.CylinderGeometry(0.315, 0.315, 1.25, 64), navy, -1.75);
-  for (let i = 0; i < 9; i++) add(new THREE.TorusGeometry(0.315, 0.018, 8, 48), navy, -2.3 + i * 0.13, (m) => (m.rotation.x = Math.PI / 2));
-  add(new THREE.CylinderGeometry(0.07, 0.315, 0.75, 64), chrome, -2.75);
-  add(new THREE.CylinderGeometry(0.035, 0.035, 0.35, 24), chrome, -3.28);
-  add(new THREE.CylinderGeometry(0.018, 0.018, 0.2, 16), lead, -3.55);
-  add(new THREE.CylinderGeometry(0.305, 0.305, 0.12, 64), chrome, 2.4);
-  add(new THREE.CylinderGeometry(0.29, 0.29, 0.55, 64), chrome, 2.72);
-  add(new THREE.CylinderGeometry(0.2, 0.22, 0.28, 48), eraser, 3.12);
-  add(new THREE.BoxGeometry(0.09, 1.7, 0.07), chrome, 1.75, (m) => (m.position.x = 0.36));
-  add(new THREE.SphereGeometry(0.075, 24, 16), chrome, 0.95, (m) => (m.position.x = 0.37));
-  add(new THREE.BoxGeometry(0.1, 0.12, 0.1), chrome, 2.55, (m) => (m.position.x = 0.33));
-  pencil.rotation.z = -0.55;
-  pencil.rotation.x = 0.25;
+  const C = buildCase();
+  scene.add(C.root);
+
+  const pencil = makePencil();
   const pencilWrap = new THREE.Group();
   pencilWrap.add(pencil);
+  pencilWrap.visible = false;
   scene.add(pencilWrap);
 
-  /* ---------- ปกการ์ตูนลอยรอบๆ ---------- */
-  function roundedPlane(w, h, r) {
-    const s = new THREE.Shape();
-    const x = -w / 2, y = -h / 2;
-    s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r);
-    s.lineTo(x + w, y + h - r); s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r);
-    s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y);
-    const g = new THREE.ShapeGeometry(s, 12);
-    const uv = g.attributes.uv, pos = g.attributes.position;
-    for (let i = 0; i < uv.count; i++) uv.setXY(i, (pos.getX(i) - x) / w, (pos.getY(i) - y) / h);
-    return g;
-  }
+  /* ปกการ์ตูน */
   const loader = new THREE.TextureLoader();
   const cardGeo = roundedPlane(1.9, 1.425, 0.12);
+  const uv = cardGeo.attributes.uv, ps = cardGeo.attributes.position;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, (ps.getX(i) + 0.95) / 1.9, (ps.getY(i) + 0.7125) / 1.425);
   const frameGeo = roundedPlane(2.0, 1.525, 0.16);
   const frameMat = new THREE.MeshPhysicalMaterial({ color: 0xeaf3ff, roughness: 0.3, metalness: 0.1, transparent: true, opacity: 0.85, side: THREE.DoubleSide });
   const cards = EPISODES.map((e, i) => {
-    const tex = loader.load(e.coverSm);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 4;
+    const tex = loader.load(e.coverSm); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
     const g = new THREE.Group();
     const frame = new THREE.Mesh(frameGeo, frameMat); frame.position.z = -0.01;
     const face = new THREE.Mesh(cardGeo, new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, toneMapped: false }));
     face.userData.ep = e;
     g.add(frame, face);
     g.userData = { i, face, base: (i / EPISODES.length) * Math.PI * 2, hover: 0 };
+    g.visible = false;
     scene.add(g);
     return g;
   });
 
-  /* ---------- ฝุ่นแสงสีฟ้า ---------- */
+  /* ฝุ่นแสงสีฟ้า */
   const N = 420, pts = new Float32Array(N * 3);
   for (let i = 0; i < N; i++) {
     const r = 3 + Math.random() * 6, a = Math.random() * Math.PI * 2;
@@ -97,90 +226,164 @@ function start() {
   const dots = new THREE.Points(pg, new THREE.PointsMaterial({ color: 0x6fb6ff, size: 0.045, transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending }));
   scene.add(dots);
 
-  /* ---------- ขนาดจอ ---------- */
-  let R = 3.6;
+  /* ขนาดจอ */
+  let R = 3.8, narrow = false;
   function resize() {
     const w = stage.clientWidth, h = stage.clientHeight;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
-    const narrow = w < 700;
-    R = narrow ? 2.7 : 3.8;
-    camera.position.z = narrow ? 12.5 : 10;
-    pencilWrap.scale.setScalar(narrow ? 0.72 : 0.8);
+    narrow = w < 700;
+    R = narrow ? 2.6 : 3.8;
+    camera.position.z = narrow ? 13 : 10;
     camera.updateProjectionMatrix();
   }
   new ResizeObserver(resize).observe(stage);
   resize();
 
-  /* ---------- เมาส์/นิ้ว ---------- */
+  /* สถานะเปิด/ปิด */
+  let open = 0, target = 0, dragOpen = false;
+  const setTarget = (v) => {
+    target = v;
+    stage.classList.toggle("is-open", v === 1);
+    btn.textContent = v === 1 ? "ปิดกระเป๋า" : "เปิดกระเป๋า";
+    btn.setAttribute("aria-pressed", String(v === 1));
+    hintEl.textContent = v === 1 ? "ลากเพื่อหมุนดู · แตะปกเพื่อเริ่มอ่าน" : "ลากซิปไปทางซ้าย-ขวา หรือแตะที่กระเป๋าเพื่อเปิด";
+  };
+  setTarget(0);
+  btn.addEventListener("click", () => setTarget(target === 1 ? 0 : 1));
+
+  /* เมาส์/นิ้ว */
   const pointer = new THREE.Vector2(9, 9), look = { x: 0, y: 0, tx: 0, ty: 0 };
-  let spin = 0, spinVel = 0, dragging = false, lastX = 0, downX = 0;
+  let spin = 0, spinVel = 0, dragging = false, lastX = 0, lastY = 0, moved = 0;
   const ray = new THREE.Raycaster();
-  function setPointer(e) {
+  const setPointer = (e) => {
     const r = canvas.getBoundingClientRect();
     pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     look.tx = pointer.x; look.ty = pointer.y;
-  }
+  };
+  canvas.addEventListener("pointerdown", (e) => {
+    dragging = true; moved = 0; lastX = e.clientX; lastY = e.clientY; setPointer(e);
+    dragOpen = target === 0;
+    try { canvas.setPointerCapture(e.pointerId); } catch {}
+  });
   canvas.addEventListener("pointermove", (e) => {
     setPointer(e);
-    if (dragging) { const dx = e.clientX - lastX; lastX = e.clientX; spinVel = dx * 0.006; spin += spinVel; }
+    if (!dragging) return;
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    lastX = e.clientX; lastY = e.clientY; moved += Math.abs(dx) + Math.abs(dy);
+    if (dragOpen) {
+      const up = e.pointerType === "mouse" ? Math.max(0, -dy) : 0;
+      open = clamp01(open + (Math.abs(dx) + up) / 380);
+      target = open;
+    } else {
+      spinVel = dx * 0.006; spin += spinVel;
+    }
   });
-  canvas.addEventListener("pointerdown", (e) => { dragging = true; lastX = downX = e.clientX; setPointer(e); canvas.setPointerCapture(e.pointerId); });
-  canvas.addEventListener("pointerup", (e) => {
+  const release = () => {
+    if (!dragging) return;
     dragging = false;
-    if (Math.abs(e.clientX - downX) < 6 && hovered) location.href = `read.html?ep=${hovered.userData.face.userData.ep.n}`;
-  });
-  canvas.addEventListener("pointerleave", () => { pointer.set(9, 9); look.tx = look.ty = 0; });
+    if (moved < 7) {
+      if (hovered) { go(`read.html?ep=${hovered.userData.face.userData.ep.n}`); return; }
+      if (overCase) { setTarget(target === 1 && !dragOpen ? 0 : 1); return; }
+      if (dragOpen) setTarget(0);
+      return;
+    }
+    if (dragOpen) setTarget(open > 0.22 ? 1 : 0);
+  };
+  canvas.addEventListener("pointerup", release);
+  canvas.addEventListener("pointercancel", release);
+  canvas.addEventListener("pointerleave", () => { if (!dragging) { pointer.set(9, 9); look.tx = look.ty = 0; } });
+  canvas.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setTarget(target === 1 ? 0 : 1); } });
 
-  let hovered = null;
-  let visible = true;
+  let hovered = null, overCase = false, visible = true;
   new IntersectionObserver(([en]) => { visible = en.isIntersecting; }).observe(stage);
 
   const clock = new THREE.Clock();
   const tmp = new THREE.Vector3();
+  let rotY = 0.4, lastT = 0;
   function frame() {
     requestAnimationFrame(frame);
     if (!visible || document.hidden) return;
-    const t = clock.getElapsedTime();
-    const speed = REDUCED ? 0 : 1;
+    const t = clock.getElapsedTime(), dt = Math.min(0.05, t - lastT); lastT = t;
+    const sp = REDUCED ? 0 : 1;
     look.x += (look.tx - look.x) * 0.05; look.y += (look.ty - look.y) * 0.05;
-    if (!dragging) { spin += spinVel; spinVel *= 0.95; }
+    if (!dragging) {
+      open += (target - open) * (1 - Math.pow(0.02, dt));
+      if (Math.abs(target - open) < 0.0005) open = target;
+      spin += spinVel; spinVel *= 0.95;
+    }
 
-    pencil.rotation.y = t * 0.6 * speed;
-    pencilWrap.position.y = Math.sin(t * 1.2) * 0.15 * speed;
-    pencilWrap.rotation.y = look.x * 0.5;
-    pencilWrap.rotation.x = -look.y * 0.3;
+    const zip = smooth(open / 0.45);
+    const lidK = backOut((open - 0.3) / 0.55);
+    const penK = smooth((open - 0.55) / 0.4);
+    const cardK = smooth((open - 0.7) / 0.3);
+    const openness = smooth(open / 0.35);
 
+    /* กระเป๋า: หมุนรอบตัวเองตอนปิด → หันหน้าเข้าหาเราเมื่อเริ่มเปิด */
+    if (openness < 0.01) rotY += dt * 0.55 * sp;
+    else {
+      const front = Math.round(rotY / (Math.PI * 2)) * Math.PI * 2 - 0.32 + Math.sin(t * 0.5) * 0.12 * penK;
+      rotY += (front - rotY) * (1 - Math.pow(0.05, dt));
+    }
+    const s = narrow ? 1.02 : 1.32;
+    C.root.scale.setScalar(s * lerp(1, 0.9, penK));
+    C.root.rotation.set(lerp(0.32, 0.5, penK) - look.y * 0.12, rotY + look.x * 0.2, 0);
+    C.root.position.set(0, lerp(Math.sin(t * 1.3) * 0.14 * sp, narrow ? -1.9 : -1.45, penK), 0);
+    C.placeSlider(0.1 - zip * 0.52, Math.sin(t * 2.2) * 0.12 * (1 - zip) * sp);
+    C.hinge.rotation.x = -lidK * 1.95;
+
+    /* ดินสอ: ลอยขึ้นจากในกระเป๋า เอียงทแยงแล้วหมุน */
+    pencilWrap.visible = penK > 0.001;
+    if (pencilWrap.visible) {
+      const ps = (narrow ? 0.66 : 0.84) * lerp(0.5, 1, penK);
+      pencilWrap.scale.setScalar(ps);
+      C.root.getWorldPosition(tmp);
+      pencilWrap.position.set(lerp(tmp.x, 0, penK), lerp(tmp.y - 0.1, narrow ? 0.9 : 0.75, penK) + Math.sin(t * 1.2) * 0.12 * penK * sp, lerp(tmp.z, 1.6, penK));
+      pencilWrap.rotation.set(-look.y * 0.3 * penK + 0.25 * penK, look.x * 0.5 * penK, lerp(Math.PI / 2, -0.55, penK));
+      pencil.rotation.y = t * 0.6 * sp;
+    }
+
+    /* ปกการ์ตูนออกมาจากกระเป๋าแล้วลอยวน */
+    C.root.getWorldPosition(tmp);
+    const cy = narrow ? 0.7 : 0.55;
     cards.forEach((g) => {
       const { i, base } = g.userData;
-      const a = base + t * 0.18 * speed + spin;
-      const y = Math.sin(t * 0.9 + i * 1.3) * 0.25 * speed + (i % 2 ? 0.95 : -0.95);
-      g.position.set(Math.cos(a) * R, y, Math.sin(a) * R * 0.75 - 0.5);
-      g.lookAt(tmp.set(camera.position.x, g.position.y, camera.position.z));
+      const k = smooth(cardK * 1.6 - i * 0.075);
+      g.visible = k > 0.001;
+      if (!g.visible) return;
+      const a = base + t * 0.18 * sp + spin;
+      const oy = cy + Math.sin(t * 0.9 + i * 1.3) * 0.25 * sp + (i % 2 ? 0.95 : -0.85);
+      g.position.set(lerp(tmp.x, Math.cos(a) * R, k), lerp(tmp.y, oy, k), lerp(tmp.z, Math.sin(a) * R * 0.75 - 0.5, k));
+      g.lookAt(camera.position.x, g.position.y, camera.position.z);
       g.userData.hover += ((g === hovered ? 1 : 0) - g.userData.hover) * 0.15;
       const depth = (g.position.z + R) / (2 * R);
-      g.scale.setScalar(0.72 + depth * 0.35 + g.userData.hover * 0.18);
+      g.scale.setScalar(k * (0.72 + depth * 0.35 + g.userData.hover * 0.18) * (narrow ? 0.85 : 1));
     });
     dots.rotation.y = t * 0.03 + spin * 0.3;
 
     camera.position.x = look.x * 0.8;
-    camera.position.y = 0.3 + look.y * 0.5;
+    camera.position.y = 0.4 + look.y * 0.5;
     camera.lookAt(0, 0, 0);
 
+    /* ชี้ที่ปก / กระเป๋า */
     ray.setFromCamera(pointer, camera);
-    const hit = ray.intersectObjects(cards.map((c) => c.userData.face))[0];
+    const hit = cardK > 0.5 ? ray.intersectObjects(cards.filter((c) => c.visible).map((c) => c.userData.face))[0] : null;
     const h = hit ? hit.object.parent : null;
+    overCase = !h && ray.intersectObjects(C.pickables, false).length > 0;
     if (h !== hovered) {
       hovered = h;
-      canvas.style.cursor = h ? "pointer" : "grab";
       if (h) {
         const e = h.userData.face.userData.ep;
         tip.innerHTML = `<b>ตอนที่ ${e.n}</b> ${e.title}`;
         tip.classList.add("show");
       } else tip.classList.remove("show");
     }
+    canvas.style.cursor = hovered || overCase ? "pointer" : dragging ? "grabbing" : "grab";
+    cue.classList.toggle("hide", open > 0.02 || target === 1);
     renderer.render(scene, camera);
   }
   stage.classList.add("webgl-ready");
   frame();
 }
+
+try { start(); } catch (err) { console.warn("3D disabled:", err); stage.classList.add("no-webgl"); }

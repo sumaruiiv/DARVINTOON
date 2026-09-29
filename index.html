@@ -1,19 +1,21 @@
 <!doctype html>
-<html lang="th">
+<html lang="th" class="is-loading">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>ดินสอสีฟ้า — อ่านมังงะออนไลน์ทุกตอน</title>
-  <meta name="description" content="ดินสอสีฟ้า มังงะรักวัยมัธยมของดาวินกับริว อ่านฟรีครบทั้ง 8 ตอน เว็บไซต์โดย DVN7DAZY">
+  <title>DARVIN-CHERCI — อ่านมังงะ ดินสอสีฟ้า ครบทุกตอน</title>
+  <meta name="description" content="DARVIN-CHERCI เว็บอ่านมังงะ “ดินสอสีฟ้า” เรื่องรักวัยมัธยมของดาวินกับริว อ่านฟรีครบทั้ง 8 ตอน เว็บไซต์โดย DVN7DAZY">
   <meta name="theme-color" content="#0a4fd6">
-  <meta property="og:title" content="ดินสอสีฟ้า — อ่านมังงะครบทุกตอน">
+  <meta property="og:title" content="DARVIN-CHERCI — อ่านมังงะ ดินสอสีฟ้า">
   <meta property="og:description" content="เรื่องราวแปดเดือนสุดท้ายก่อนจบมัธยมของดาวินกับริว">
   <meta property="og:image" content="assets/covers/ep1.webp">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <script>try{var t=localStorage.getItem("dvn-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/features.css">
   <script type="importmap">
   { "imports": {
       "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
@@ -22,20 +24,42 @@
   </script>
 </head>
 <body class="home">
+  <div class="loader" id="loader" role="status" aria-live="polite">
+    <svg id="ld-svg" class="loader-svg" viewBox="0 0 600 190" aria-hidden="true">
+      <defs>
+        <linearGradient id="ld-fade" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".42" stop-color="#fff" stop-opacity="1"/></linearGradient>
+        <mask id="ld-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="600" height="190"><rect width="600" height="190" fill="url(#ld-fade)"/></mask>
+      </defs>
+      <g mask="url(#ld-mask)"><g id="ld-track"><path id="ld-path" d="M0 0"/></g></g>
+      <g id="ld-pencil"><g transform="rotate(-38)">
+        <path d="M0 0 L7 0" class="ld-lead"/>
+        <rect x="6" y="-1.8" width="15" height="3.6" rx="1" class="ld-metal"/>
+        <path d="M20 -2.5 L34 -7.5 L34 7.5 L20 2.5Z" class="ld-metal"/>
+        <rect x="33" y="-7.5" width="118" height="15" rx="3" class="ld-body"/>
+        <path d="M40 -7.5v15M45 -7.5v15M50 -7.5v15M55 -7.5v15M60 -7.5v15" class="ld-rib"/>
+        <rect x="150" y="-7" width="18" height="14" rx="3" class="ld-metal"/>
+        <path d="M118 -10.5 H150 V-8 H121 Q118 -8 118 -10.5Z" class="ld-metal"/>
+        <rect x="36" y="-6" width="112" height="3" rx="1.5" fill="rgba(255,255,255,.35)"/>
+      </g></g>
+    </svg>
+    <p class="loader-text">กำลังโหลด…</p>
+  </div>
   <canvas id="bg-canvas" aria-hidden="true"></canvas>
 
   <header class="gnav">
     <nav class="gnav-inner" aria-label="เมนูหลัก">
-      <a class="gnav-logo" href="./" aria-label="ดินสอสีฟ้า หน้าแรก">
+      <a class="gnav-logo" href="./" aria-label="DARVIN-CHERCI หน้าแรก">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.2-4.6L15.6 5a2 2 0 0 1 2.8 0l.6.6a2 2 0 0 1 0 2.8L8.6 18.8z" fill="currentColor"/><path d="M4 20l4.6-1.2L5.2 15.4z" fill="currentColor" opacity=".45"/></svg>
-        <span>ดินสอสีฟ้า</span>
+        <span>DARVIN-CHERCI</span>
       </a>
       <ul class="gnav-menu">
         <li><a href="#episodes">ตอนทั้งหมด</a></li>
+        <li><a href="#calendar">ปฏิทิน</a></li>
         <li><a href="#shelf">ชั้นหนังสือ 3D</a></li>
         <li><a href="#characters">ตัวละคร</a></li>
         <li><a href="#about">เกี่ยวกับ</a></li>
         <li><a href="#" data-continue>อ่านต่อ</a></li>
+        <li><a href="#" class="gnav-donate" data-donate>โดเนท 💙</a></li>
       </ul>
       <div class="gnav-tools">
         <span class="visit-pill" data-visits-wrap title="จำนวนผู้เข้าชมทั้งหมด">
@@ -51,29 +75,55 @@
   </header>
 
   <main>
-    <!-- HERO แบบหน้าร้าน Apple -->
+    <!-- HERO -->
     <section class="hero wrap">
       <div class="hero-head" data-reveal>
-        <h1>ดินสอสีฟ้า<span class="dot">.</span></h1>
+        <h1>DARVIN-CHERCI<span class="dot">.</span></h1>
         <div class="hero-side">
-          <p><strong>วิธีที่ดีที่สุดในการอ่าน</strong><br>เรื่องราวของดาวินกับริว ครบทั้ง 8 ตอน อ่านฟรีได้ทุกอุปกรณ์</p>
-          <a class="link-arrow" href="read.html?ep=1">เริ่มอ่านตอนที่ 1</a>
-          <a class="link-arrow" href="#" data-continue>อ่านต่อจากที่ค้างไว้</a>
+          <p><strong>วิธีที่ดีที่สุดในการอ่าน “ดินสอสีฟ้า”</strong><br>เรื่องราวของดาวินกับริว ครบทั้ง 8 ตอน อ่านฟรีได้ทุกอุปกรณ์</p>
         </div>
       </div>
 
       <div class="stage" id="stage" data-reveal>
-        <canvas id="hero3d" aria-label="ดินสอสีฟ้าสามมิติ ล้อมรอบด้วยปกทุกตอน แตะปกเพื่ออ่าน"></canvas>
+        <canvas id="hero3d" tabindex="0" aria-label="กระเป๋าดินสอสามมิติ ลากซิปหรือกด Enter เพื่อเปิด แล้วแตะปกการ์ตูนเพื่อเริ่มอ่าน"></canvas>
         <div class="stage-fallback" aria-hidden="true">
           <img src="assets/covers/ep1.webp" alt=""><img src="assets/covers/ep4.webp" alt=""><img src="assets/covers/ep8.webp" alt="">
         </div>
         <div class="stage-tip" id="stage-tip" role="status"></div>
-        <p class="stage-hint">ลากหรือขยับเมาส์เพื่อหมุนดู · แตะปกเพื่อเริ่มอ่าน</p>
+        <div class="stage-cue" id="stage-cue" aria-hidden="true">
+          <span class="cue-track"><span class="cue-dot"></span></span>
+          <span>ลากซิปเพื่อเปิดกระเป๋า</span>
+        </div>
+        <button class="stage-btn" id="case-btn" type="button" aria-pressed="false">เปิดกระเป๋า</button>
+        <p class="stage-hint" id="stage-hint"></p>
       </div>
 
-      <!-- แถวไอคอนตอน (เหมือนแถวสินค้าของ Apple Store) -->
-      <div class="chips" id="chips" role="list" data-reveal></div>
+      <!-- เมนูเริ่มอ่าน (อยู่ใต้กระเป๋าดินสอ) -->
+      <div class="hero-cta" data-reveal>
+        <a class="cta" href="read.html?ep=1">
+          <span class="cta-ic" aria-hidden="true">✎</span>
+          <span class="cta-txt"><b>เริ่มอ่านตอนที่ 1</b><small>นับเลขให้หน่อยได้ไหม</small></span>
+          <span class="cta-go" aria-hidden="true">›</span>
+        </a>
+        <a class="cta alt" href="#" data-continue>
+          <span class="cta-ic" aria-hidden="true">↺</span>
+          <span class="cta-txt"><b>อ่านต่อจากที่ค้างไว้</b><small data-continue-label>เริ่มจากตอนแรก</small></span>
+          <span class="cta-go" aria-hidden="true">›</span>
+        </a>
+      </div>
     </section>
+
+    <!-- ปฏิทิน 3D -->
+    <section class="cal-sec" id="calendar">
+      <div class="wrap">
+        <h2 class="row-title" data-reveal><span>ปฏิทินของเรื่องราว.</span> จับปลายกระดาษแล้วลากขึ้นเพื่อพลิกไปเดือนถัดไป</h2>
+      </div>
+      <div class="wrap" id="cal-root" data-reveal></div>
+    </section>
+
+    <div class="wrap">
+      <div class="chips" id="chips" role="list" data-reveal></div>
+    </div>
 
     <!-- ตอนทั้งหมด: การ์ดเลื่อนแนวนอน -->
     <section class="shelf-row" id="episodes">
@@ -89,15 +139,28 @@
       </div>
     </section>
 
-    <!-- ชั้นหนังสือ 3 มิติ -->
+    <!-- ชั้นวางหนังสือไม้ 3D -->
     <section class="ring-sec" id="shelf">
       <div class="wrap">
-        <h2 class="row-title" data-reveal><span>ชั้นหนังสือ 3D.</span> หมุน ลาก แล้วเลือกตอนที่ชอบ</h2>
+        <h2 class="row-title" data-reveal><span>ชั้นหนังสือ 3D.</span> แตะหนังสือที่เรืองแสงเพื่อหยิบออกมาจากชั้น</h2>
       </div>
-      <div class="ring-stage" id="ring-stage" data-reveal>
-        <div class="ring" id="ring"></div>
+      <div class="wrap">
+        <div class="shelf-stage" id="shelf-stage" data-reveal>
+          <canvas id="shelf3d" aria-label="ชั้นวางหนังสือไม้สามมิติ หนังสือที่เรืองแสงคือตอนที่อ่านได้"></canvas>
+          <div class="stage-tip" id="shelf-tip" role="status"></div>
+          <div class="book-panel" id="book-panel" role="dialog" aria-label="หนังสือที่หยิบออกมา" hidden>
+            <p class="eyebrow" data-bp-eyebrow></p>
+            <h3 data-bp-title></h3>
+            <div class="bp-actions">
+              <button type="button" class="btn sm" data-bp="syn">ดูเรื่องย่อ</button>
+              <button type="button" class="btn sm" data-bp="read">อ่านตอนนี้</button>
+              <button type="button" class="btn sm ghost" data-bp="back">เก็บหนังสือเข้าชั้น</button>
+            </div>
+          </div>
+          <div class="sr-only" id="shelf-sr"></div>
+          <p class="stage-hint">ลากเพื่อหมุนชั้นหนังสือ · หนังสือที่เรืองแสงสีฟ้าแตะได้</p>
+        </div>
       </div>
-      <div class="ring-caption" id="ring-caption" aria-live="polite"></div>
     </section>
 
     <!-- ความแตกต่าง -->
@@ -120,7 +183,7 @@
             <div class="feat-ic">◐</div><h3>โหมดกลางคืน</h3><p>สลับโทนสว่างหรือมืดได้ อ่านตอนดึกก็ไม่แสบตา</p>
           </article>
           <article class="feat" data-tilt data-reveal>
-            <div class="feat-ic">✎</div><h3>ฟรีครบ 8 ตอน</h3><p>95 หน้าเต็ม ตั้งแต่สิงหาคมจนถึงวันศุกร์ที่ 13</p>
+            <div class="feat-ic">✎</div><h3>ฟรีครบ 8 ตอน</h3><p><span data-total-pages>96</span> หน้าเต็ม ตั้งแต่สิงหาคมจนถึงวันศุกร์ที่ 13</p>
           </article>
         </div>
       </div>
@@ -139,7 +202,7 @@
         <span class="stat-label">ผู้เข้าชมเว็บไซต์ทั้งหมด</span>
       </div>
       <div class="stat"><span class="stat-num">8</span><span class="stat-label">ตอน</span></div>
-      <div class="stat"><span class="stat-num" id="total-pages">95</span><span class="stat-label">หน้า</span></div>
+      <div class="stat"><span class="stat-num" id="total-pages">96</span><span class="stat-label">หน้า</span></div>
     </section>
   </main>
 
@@ -150,6 +213,10 @@
       <p class="fine">© <span data-year>2026</span> DVN7DAZY สงวนลิขสิทธิ์ ห้ามนำภาพหรือเนื้อหาไปเผยแพร่ต่อโดยไม่ได้รับอนุญาต</p>
     </div>
   </footer>
+
+  <button class="donate-fab" type="button" data-donate aria-label="โดเนทสนับสนุนผู้สร้าง">
+    <span class="fab-heart" aria-hidden="true"></span><span>โดเนท</span>
+  </button>
 
   <dialog class="ep-modal" id="ep-modal" aria-labelledby="m-title">
     <button class="modal-close" data-close aria-label="ปิด">×</button>
@@ -167,7 +234,19 @@
     </div>
   </dialog>
 
+  <dialog class="confirm" id="cal-confirm" aria-labelledby="cc-title">
+    <div class="confirm-ic" aria-hidden="true"><span class="cc-top"></span><span class="cc-page">✎</span></div>
+    <h3 id="cc-title">แน่ใจว่าคุณจะเข้าสู่เรื่องของเดือนนี้?</h3>
+    <p class="cc-sub" data-cc-sub></p>
+    <div class="confirm-actions">
+      <button type="button" class="btn ghost" data-cc="no">ยังอ่ะ</button>
+      <button type="button" class="btn" data-cc="yes">ตกลง</button>
+    </div>
+  </dialog>
+
   <script type="module" src="assets/js/home.js"></script>
+  <script type="module" src="assets/js/calendar.js"></script>
   <script type="module" src="assets/js/hero3d.js"></script>
+  <script type="module" src="assets/js/shelf3d.js"></script>
 </body>
 </html>

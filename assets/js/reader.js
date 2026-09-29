@@ -1,5 +1,6 @@
 import { EPISODES, getProgress, setProgress } from "./data.js";
 import { initCommon } from "./common.js";
+import "./donate.js";
 
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
@@ -9,7 +10,7 @@ const prev = EPISODES[n - 2], next = EPISODES[n];
 const progress = getProgress();
 progress.eps ||= {};
 
-document.title = `ตอนที่ ${ep.n} ${ep.title} — ดินสอสีฟ้า`;
+document.title = `ตอนที่ ${ep.n} ${ep.title} — DARVIN-CHERCI`;
 $("#r-title").innerHTML = `<b>ตอนที่ ${ep.n}</b><span>${ep.title}</span>`;
 
 /* ---------- หัวตอน ---------- */
@@ -42,11 +43,13 @@ $("#r-end").innerHTML = next ? `
     <img src="${next.cover}" alt="" loading="lazy">
     <span class="next-body"><b>${next.title}</b><span>${next.month} · ${next.pages} หน้า</span><span class="next-syn">${next.synopsis}</span></span>
   </a>
-  <div class="r-end-actions"><a class="btn" href="read.html?ep=${next.n}">อ่านตอนที่ ${next.n} ›</a><a class="btn ghost" href="./">กลับหน้าแรก</a></div>` : `
+  <div class="r-end-actions"><a class="btn" href="read.html?ep=${next.n}">อ่านตอนที่ ${next.n} ›</a><a class="btn ghost" href="./">กลับหน้าแรก</a></div>
+  <button type="button" class="r-donate" data-donate>💙 ชอบเรื่องนี้ไหม? สนับสนุนผู้สร้างได้ที่นี่</button>` : `
   <p class="eyebrow">จบบริบูรณ์</p>
   <h2>จบเรื่อง “ดินสอสีฟ้า”</h2>
   <p class="r-end-note">ขอบคุณที่อ่านมาจนถึงหน้าสุดท้าย ✎</p>
-  <div class="r-end-actions"><a class="btn" href="read.html?ep=1">อ่านใหม่ตั้งแต่ตอนที่ 1</a><a class="btn ghost" href="./">กลับหน้าแรก</a></div>`;
+  <div class="r-end-actions"><a class="btn" href="read.html?ep=1">อ่านใหม่ตั้งแต่ตอนที่ 1</a><a class="btn ghost" href="./">กลับหน้าแรก</a></div>
+  <button type="button" class="r-donate" data-donate>💙 ชอบเรื่องนี้ไหม? สนับสนุนผู้สร้างได้ที่นี่</button>`;
 
 /* ---------- ปุ่มก่อน/ถัดไป ---------- */
 const setBtn = (el, e) => { if (e) el.href = `read.html?ep=${e.n}`; else { el.removeAttribute("href"); el.classList.add("disabled"); el.setAttribute("aria-disabled", "true"); } };

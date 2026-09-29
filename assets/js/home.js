@@ -1,5 +1,6 @@
 import { EPISODES, CHARACTERS, TOTAL_PAGES, getProgress } from "./data.js";
 import { initCommon } from "./common.js";
+import "./donate.js";
 
 const $ = (s, r = document) => r.querySelector(s);
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -75,6 +76,11 @@ document.querySelectorAll("[data-continue]").forEach((a) => {
   a.href = last ? `read.html?ep=${last.ep}&p=${last.page}` : "read.html?ep=1";
   if (last) a.title = `ตอนที่ ${last.ep} หน้า ${last.page}`;
 });
+document.querySelectorAll("[data-continue-label]").forEach((el) => {
+  const last = progress.last;
+  el.textContent = last ? `ตอนที่ ${last.ep} · ${EPISODES[last.ep - 1]?.title ?? ""} · หน้า ${last.page}` : "ยังไม่มีตอนที่อ่านค้าง เริ่มจากตอนแรกได้เลย";
+});
+document.querySelectorAll("[data-total-pages]").forEach((el) => (el.textContent = TOTAL_PAGES));
 
 /* ---------- ตัวละคร ---------- */
 $("#char-grid").innerHTML = CHARACTERS.map((c) => `
@@ -108,79 +114,5 @@ if (matchMedia("(hover: hover) and (pointer: fine)").matches && !REDUCED) {
     });
   });
 }
-
-/* ---------- ชั้นหนังสือวงกลม 3 มิติ (ลาก/ปัดเพื่อหมุน) ---------- */
-(function ring() {
-  const ring = $("#ring"), stage = $("#ring-stage"), cap = $("#ring-caption");
-  const N = EPISODES.length, step = 360 / N;
-  ring.innerHTML = EPISODES.map((e, i) => `
-    <button class="ring-item" style="--i:${i}" data-ep="${e.n}" aria-label="ตอนที่ ${e.n} ${e.title}">
-      <img src="${e.coverSm}" alt="" loading="lazy" draggable="false">
-      <span class="ring-label"><b>ตอนที่ ${e.n}</b> ${e.title}</span>
-    </button>`).join("");
-  let angle = 0, vel = 0, dragging = false, lastX = 0, moved = 0, idle = 0;
-  const items = [...ring.children];
-  function layout() {
-    const w = items[0].offsetWidth || 240;
-    const r = Math.round(w / 2 / Math.tan(Math.PI / N) + w * 0.18);
-    ring.style.setProperty("--r", `${r}px`);
-  }
-  layout();
-  addEventListener("resize", layout);
-  function front() {
-    const a = ((-angle % 360) + 360) % 360;
-    return Math.round(a / step) % N;
-  }
-  let lastFront = -1;
-  function apply() {
-    ring.style.transform = `rotateX(-9deg) translateZ(calc(var(--r) * -1)) rotateY(${angle}deg)`;
-    const f = front();
-    if (f !== lastFront) {
-      lastFront = f;
-      items.forEach((it, i) => it.classList.toggle("front", i === f));
-      const e = EPISODES[f];
-      cap.innerHTML = `<p class="eyebrow">ตอนที่ ${e.n} · ${e.month}</p><h3>${e.title}</h3><p>${e.hook}</p>
-        <button class="btn sm" data-open="${e.n}">ดูเรื่องย่อ</button> <a class="btn sm ghost" href="read.html?ep=${e.n}">อ่านเลย</a>`;
-    }
-  }
-  cap.addEventListener("click", (e) => { const b = e.target.closest("[data-open]"); if (b) openModal(+b.dataset.open); });
-  stage.addEventListener("pointerdown", (e) => {
-    dragging = true; moved = 0; lastX = e.clientX; vel = 0; stage.setPointerCapture(e.pointerId); stage.classList.add("grab");
-  });
-  stage.addEventListener("pointermove", (e) => {
-    if (!dragging) return;
-    const dx = e.clientX - lastX; lastX = e.clientX; moved += Math.abs(dx);
-    angle += dx * 0.35; vel = dx * 0.35; apply();
-  });
-  const end = () => { dragging = false; idle = performance.now(); stage.classList.remove("grab"); };
-  stage.addEventListener("pointerup", end);
-  stage.addEventListener("pointercancel", end);
-  ring.addEventListener("click", (e) => {
-    const it = e.target.closest(".ring-item");
-    if (!it || moved > 6) return;
-    const i = items.indexOf(it);
-    if (i === front()) openModal(+it.dataset.ep);
-    else { target = -i * step; snapping = true; }
-  });
-  let target = null, snapping = false;
-  function loop(t) {
-    if (!dragging) {
-      if (snapping && target !== null) {
-        let d = target - angle; d = ((d + 540) % 360) - 180;
-        angle += d * 0.12;
-        if (Math.abs(d) < 0.1) { snapping = false; target = null; idle = t; }
-      } else if (Math.abs(vel) > 0.05) {
-        angle += vel; vel *= 0.94;
-        if (Math.abs(vel) <= 0.05) { target = -Math.round(-angle / step) * step; snapping = true; }
-      } else if (!REDUCED && t - idle > 3500) {
-        angle -= 0.12;
-      }
-      apply();
-    }
-    requestAnimationFrame(loop);
-  }
-  apply();
-  requestAnimationFrame(loop);
-})();
 
 initCommon();

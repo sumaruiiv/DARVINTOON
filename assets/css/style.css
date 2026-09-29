@@ -49,7 +49,7 @@ button { font: inherit; color: inherit; }
 .muted { color: var(--muted); }
 .eyebrow { margin: 0 0 4px; font-size: 13px; font-weight: 600; letter-spacing: .02em; color: var(--accent); }
 
-#bg-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; filter: blur(30px) saturate(1.1); transform: scale(1.08); }
+#bg-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -2; filter: blur(30px) saturate(1.1); transform: scale(1.08); }
 
 /* ---------- ปุ่ม ---------- */
 .btn {
@@ -196,25 +196,6 @@ button { font: inherit; color: inherit; }
 .feat-ic { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; color: #fff;
   background: linear-gradient(135deg, var(--sky), var(--accent-2)); box-shadow: 0 8px 20px rgba(10, 102, 255, .35); }
 
-/* ---------- ชั้นหนังสือวงกลม 3D ---------- */
-.ring-stage { height: 430px; perspective: 1400px; perspective-origin: 50% 35%; display: grid; place-items: center; overflow: hidden; touch-action: pan-y; cursor: grab; user-select: none; }
-.ring-stage.grab { cursor: grabbing; }
-.ring { position: relative; width: 250px; height: 188px; transform-style: preserve-3d; --r: 360px; }
-.ring-item {
-  position: absolute; inset: 0; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 16px;
-  transform: rotateY(calc(var(--i) * 45deg)) translateZ(var(--r)); backface-visibility: hidden;
-  transition: filter .4s;
-  filter: brightness(.82) saturate(.8);
-  -webkit-box-reflect: below 10px linear-gradient(transparent 60%, rgba(0, 0, 0, .28));
-}
-.ring-item.front { filter: none; }
-.ring-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 16px; box-shadow: 0 16px 40px rgba(10, 50, 140, .35); pointer-events: none; }
-.ring-label { position: absolute; left: 10px; bottom: 10px; right: 10px; text-align: left; font-size: 13px; color: #fff;
-  padding: 6px 10px; border-radius: 10px; background: rgba(6, 20, 60, .55); backdrop-filter: blur(8px); }
-.ring-caption { text-align: center; min-height: 150px; padding: 0 16px; }
-.ring-caption h3 { margin: 0; font-size: 28px; }
-.ring-caption p { margin: 2px 0 12px; color: var(--muted); }
-
 /* ---------- ตัวละคร ---------- */
 .char-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
 .char { border-radius: var(--radius); background: var(--surface); backdrop-filter: blur(16px); box-shadow: var(--shadow); overflow: hidden; }
@@ -347,9 +328,6 @@ button { font: inherit; color: inherit; }
   .gnav-tools { margin-left: auto; }
   .hero { padding-top: 32px; }
   .hero-side { font-size: 16px; }
-  .ring-stage { height: 320px; perspective: 900px; }
-  .ring { width: 170px; height: 128px; }
-  .ring-label { font-size: 11px; }
   .r-intro { grid-template-columns: 1fr; text-align: left; padding-top: 22px; }
   .r-intro-img { max-width: 320px; }
   .r-back span { display: none; }
