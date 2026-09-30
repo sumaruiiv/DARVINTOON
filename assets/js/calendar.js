@@ -275,18 +275,17 @@ function nudge(page, deg) {
   setTimeout(() => { page.style.transform = ""; setTimeout(() => page.classList.remove("flip-anim"), DUR); }, 180);
 }
 // จับตรงไหนของปฏิทินก็ได้: ลากขึ้น = เดือนถัดไป · ลากลง = เดือนก่อนหน้า (ทิศทางตัดสินตอนเริ่มลาก)
-root.addEventListener("pointerdown", (e) => {
-  if (busy || e.button > 0) return;
-  const page = e.target.closest(".cal-page");
-  if (!page || +page.dataset.i !== cur) return;
-  const tab = e.target.closest(".cal-tab");
-  if (tab || e.pointerType !== "mouse") e.preventDefault();
-  drag = { mode: null, page, prev: null, y0: e.clientY, x0: e.clientX, t0: performance.now(), onTab: !!tab,
-    a: 0, h: page.getBoundingClientRect().height, started: false, pid: e.pointerId, el: page };
-});
-root.addEventListener("pointermove", (e) => {
+// ใช้ร่วมกันทั้งเมาส์ (pointer events) และนิ้ว (touch events แยกต่างหาก ด้านล่าง)
+function dStart(x, y, onTab) {
+  if (busy) return false;
+  const page = pages[cur];
+  drag = { mode: null, page, prev: null, y0: y, x0: x, t0: performance.now(), onTab,
+    a: 0, h: page.getBoundingClientRect().height, started: false, pid: null, el: page };
+  return true;
+}
+function dMove(x, y) {
   if (!drag) return;
-  const dy = e.clientY - drag.y0, dx = e.clientX - drag.x0;
+  const dy = y - drag.y0, dx = x - drag.x0;
   if (!drag.started) {
     if (Math.abs(dy) < MIN_DRAG) return;
     if (Math.abs(dx) > Math.abs(dy) * 1.3) { drag = null; return; }   // ปัดแนวนอนไม่นับ
@@ -296,7 +295,7 @@ root.addEventListener("pointermove", (e) => {
       drag.prev = pages[cur - 1];
     }
     drag.started = true;
-    try { drag.el.setPointerCapture(drag.pid); } catch {}
+    if (drag.pid != null) { try { drag.el.setPointerCapture(drag.pid); } catch {} }
     if (drag.mode === "next") drag.page.classList.add("dragging");
     else {
       const p = drag.prev;
@@ -304,7 +303,6 @@ root.addEventListener("pointermove", (e) => {
       p.style.visibility = ""; p.style.zIndex = "120"; p.style.transform = "rotateX(180deg)";
     }
   }
-  e.preventDefault();
   if (drag.mode === "next") {
     const last = cur === N - 1;
     let a = Math.max(0, (-dy / (drag.h * 0.85)) * 180);
@@ -317,16 +315,17 @@ root.addEventListener("pointermove", (e) => {
     drag.a = a;
     drag.prev.style.transform = `rotateX(${a}deg)`;
   }
-});
-const endDrag = (e) => {
-  if (!drag) return;
+}
+// คืนค่า true ถ้าเป็นการ "แตะ" (ไม่ได้ลาก)
+function dEnd(y) {
+  if (!drag) return false;
   const d = drag; drag = null;
   if (!d.started) {                                   // แตะเฉยๆ ที่ปลายกระดาษ: ไม่พลิก ให้กระดาษกระดิกเป็นคำใบ้
     if (d.onTab) { nudge(d.page, cur === N - 1 ? 8 : 14); suppressClick = performance.now(); }
-    return;
+    return true;
   }
   suppressClick = performance.now();
-  const dist = Math.abs((e.clientY ?? d.y0) - d.y0);
+  const dist = Math.abs((y ?? d.y0) - d.y0);
   const fast = dist / Math.max(1, performance.now() - d.t0) > 0.6;
   if (d.mode === "next") {
     d.page.classList.remove("dragging"); d.page.style.removeProperty("--lift");
@@ -334,7 +333,7 @@ const endDrag = (e) => {
       d.page.classList.add("flip-anim"); d.page.style.transform = "";
       setTimeout(() => d.page.classList.remove("flip-anim"), DUR);
       if (d.a > 10) setTimeout(() => goTo(0), 200);
-      return;
+      return false;
     }
     if (d.a > 55 || (fast && d.a > 12)) flipNext();
     else { d.page.classList.add("flip-anim"); d.page.style.transform = ""; setTimeout(() => d.page.classList.remove("flip-anim"), DUR); }
@@ -349,15 +348,53 @@ const endDrag = (e) => {
       setTimeout(() => { p.classList.remove("flip-anim"); layout(); busy = false; }, DUR);
     }
   }
-};
-root.addEventListener("pointerup", endDrag);
-// มือถือ/แท็บเล็ต: ถ้านิ้วเริ่มแตะบนปฏิทิน ห้ามหน้าเว็บเลื่อน (iOS Safari ต้องกันที่ touchmove แบบ passive:false)
-let touchOnCal = false;
+  return false;
+}
+
+/* เมาส์ (คอมพิวเตอร์) */
+root.addEventListener("pointerdown", (e) => {
+  if (e.pointerType !== "mouse" || e.button > 0) return;
+  const page = e.target.closest(".cal-page");
+  if (!page || +page.dataset.i !== cur) return;
+  const tab = e.target.closest(".cal-tab");
+  if (tab) e.preventDefault();
+  if (dStart(e.clientX, e.clientY, !!tab)) drag.pid = e.pointerId;
+});
+root.addEventListener("pointermove", (e) => { if (e.pointerType === "mouse" && drag) { dMove(e.clientX, e.clientY); if (drag?.started) e.preventDefault(); } });
+root.addEventListener("pointerup", (e) => { if (e.pointerType === "mouse") dEnd(e.clientY); });
+root.addEventListener("pointercancel", (e) => { if (e.pointerType === "mouse") dEnd(e.clientY); });
+
+/* นิ้ว (มือถือ/แท็บเล็ต): ใช้ touch events โดยตรง + ยกเลิกการเลื่อนหน้าเว็บตั้งแต่นิ้วแตะปฏิทิน
+   (ตัดสินจากพิกัดบนจอ ไม่พึ่ง element ที่ถูกแตะ ซึ่งเชื่อถือไม่ได้ในฉาก 3 มิติบน iOS) */
 const calBody = root.querySelector(".cal-body");
-calBody.addEventListener("touchstart", (e) => { touchOnCal = !busy && !!e.target.closest(".cal-page.current"); }, { passive: true });
-calBody.addEventListener("touchmove", (e) => { if (touchOnCal && e.cancelable) e.preventDefault(); }, { passive: false });
-calBody.addEventListener("touchend", () => { touchOnCal = false; }, { passive: true });
-root.addEventListener("pointercancel", endDrag);
+let touchId = null;
+const inCal = (x, y) => { const r = calBody.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom ? r : null; };
+root.addEventListener("touchstart", (e) => {
+  if (touchId !== null || e.touches.length > 1) return;
+  const t = e.changedTouches[0], r = inCal(t.clientX, t.clientY);
+  if (!r || busy) return;
+  e.preventDefault();                                   // กันหน้าเว็บเลื่อนตั้งแต่แรก (ได้ผลทั้ง iOS Safari และ Android Chrome)
+  touchId = t.identifier;
+  dStart(t.clientX, t.clientY, t.clientY > r.bottom - r.height * 0.14);
+}, { passive: false });
+root.addEventListener("touchmove", (e) => {
+  if (touchId === null) return;
+  const t = [...e.changedTouches].find((x) => x.identifier === touchId);
+  if (e.cancelable) e.preventDefault();
+  if (t) dMove(t.clientX, t.clientY);
+}, { passive: false });
+const touchEnd = (e) => {
+  if (touchId === null) return;
+  const t = [...e.changedTouches].find((x) => x.identifier === touchId);
+  if (!t) return;
+  touchId = null;
+  if (e.cancelable) e.preventDefault();
+  const onTab = drag?.onTab;
+  const tapped = dEnd(t.clientY);
+  if (tapped && !onTab && e.type === "touchend" && !busy) ask(EPISODES[cur]);   // แตะหน้าปฏิทิน = ถามเข้าเรื่อง
+};
+root.addEventListener("touchend", touchEnd, { passive: false });
+root.addEventListener("touchcancel", touchEnd, { passive: false });
 root.addEventListener("keydown", (e) => {   // คีย์บอร์ด: Enter ที่ปลายกระดาษ = เดือนถัดไป, Shift+Enter = เดือนก่อนหน้า
   if (e.target.closest(".cal-tab") && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); e.shiftKey ? flipPrev() : cur === N - 1 ? goTo(0) : flipNext(); }
 });

@@ -566,3 +566,6 @@ html.fox-busy { overflow: hidden; }
 :root[data-world="fox"] .loader { background: rgba(245, 239, 255, .97); }
 :root[data-world="fox"][data-theme="dark"] .loader { background: rgba(18, 7, 42, .97); }
 @media (prefers-color-scheme: dark) { :root[data-world="fox"]:not([data-theme="light"]) .loader { background: rgba(18, 7, 42, .97); } }
+
+/* ปฏิทิน: บนจอสัมผัส ห้ามเบราว์เซอร์เลื่อนหน้าเว็บเมื่อนิ้วอยู่บนตัวปฏิทิน */
+.cal, .cal-body, .cal-stack, .cal-page, .cal-face, .cal-tab { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
