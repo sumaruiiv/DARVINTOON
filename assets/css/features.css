@@ -131,12 +131,14 @@ html { overflow-x: clip; }
 .cal-rings i { width: 2.3cqw; height: 100%; border-radius: 2cqw; background: linear-gradient(90deg, #7f8ca2, #f6f8fc 45%, #93a1b6); box-shadow: 0 .5cqw .8cqw rgba(0, 0, 0, .28); }
 .cal-fw { position: absolute; inset: 0; z-index: 140; width: 100%; height: 100%; border-radius: 12px; pointer-events: none; opacity: 0; transition: opacity .5s; transform: translateZ(12px); }
 .cal-fw.on { opacity: 1; }
-.cal-ctrl { position: relative; z-index: 4; display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: -84px; }
-.round-btn.sm { width: 38px; height: 38px; font-size: 22px; }
-.round-btn:disabled { opacity: .35; cursor: default; transform: none; }
+.cal-ctrl { position: relative; z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: -84px; }
+.cal-help { position: relative; z-index: 5; margin: 0 16px; padding: 5px 14px; border-radius: 999px; text-align: center; font-size: 13px; color: var(--muted); background: var(--surface); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
 .cal-dots { display: flex; gap: 8px; }
-.cal-dots button { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 99px; cursor: pointer; background: color-mix(in srgb, var(--accent) 30%, transparent); transition: width .3s, background .3s; }
-.cal-dots button.on { width: 26px; background: var(--accent); }
+.cal-dots span { width: 9px; height: 9px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 30%, transparent); transition: width .3s, background .3s; }
+.cal-dots span.on { width: 26px; background: var(--accent); }
+.cal.can-prev .cal-page.current .cal-head { cursor: grab; touch-action: none; }
+.cal.can-prev .cal-page.current .cal-head::after { content: "⇣ ลากลงเพื่อย้อนเดือน"; position: absolute; left: 50%; bottom: .8cqw; transform: translateX(-50%);
+  font: 600 2.4cqw/1 "Noto Sans Thai", sans-serif; color: rgba(255, 255, 255, .75); white-space: nowrap; pointer-events: none; }
 
 /* ของตกแต่งรอบปฏิทิน */
 .cal-decos { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
@@ -350,7 +352,7 @@ html { overflow-x: clip; }
 @media (max-width: 760px) {
   .cal-scene { padding: 54px 0 150px; }
   .cal-ctrl { margin-top: -104px; }
-  .shelf-stage { height: auto; aspect-ratio: 1 / 1.4; }
+  .shelf-stage { height: auto; aspect-ratio: 1 / 1.2; }
   .book-panel { bottom: 10px; padding: 12px 12px 14px; border-radius: 18px; }
   .book-panel h3 { margin-bottom: 8px; font-size: 18px; }
   .bp-actions .btn.sm { padding: 7px 12px; font-size: 13px; }
@@ -437,3 +439,69 @@ html { overflow-x: clip; }
   .standee-stage { aspect-ratio: 1 / 1.35; }
   .sd-label { font-size: 12.5px; padding-left: 10px; gap: 6px; }
 }
+
+/* แถวชิปตอน: อยู่กึ่งกลางเสมอ (จอกว้าง) และยังเลื่อนได้ครบเมื่อจอแคบ */
+.chips .chip:first-child { margin-left: auto; }
+.chips .chip:last-child { margin-right: auto; }
+.hint-narrow { display: none; }
+@media (max-width: 699px) { .shelf-stage .hint-wide { display: none; } .shelf-stage .hint-narrow { display: inline; } }
+.shelf-stage .stage-hint { left: 50%; right: auto; bottom: 10px; transform: translateX(-50%); width: max-content; max-width: 92%; padding: 4px 12px; border-radius: 99px;
+  background: var(--surface); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+
+/* ====================== ธีมหมาจิ้งจอก (เปิดหลังกดตุ๊กตาเท่านั้น) ====================== */
+:root[data-world="fox"] { --accent: #7c3aed; --accent-2: #5b21b6; --sky: #c084fc; --nav-bg: rgba(250, 245, 255, .74); --line: rgba(90, 40, 150, .12); }
+:root[data-world="fox"] body { background: #f5efff; }
+:root[data-world="fox"][data-theme="dark"] { --accent: #c4a1ff; --accent-2: #e0ccff; --sky: #b57bff; --nav-bg: rgba(22, 8, 44, .74); --surface: rgba(40, 18, 76, .72); --surface-solid: #221040; --line: rgba(200, 160, 255, .16); }
+:root[data-world="fox"][data-theme="dark"] body { background: #12072a; }
+@media (prefers-color-scheme: dark) {
+  :root[data-world="fox"]:not([data-theme="light"]) { --accent: #c4a1ff; --accent-2: #e0ccff; --sky: #b57bff; --nav-bg: rgba(22, 8, 44, .74); --surface: rgba(40, 18, 76, .72); --surface-solid: #221040; --line: rgba(200, 160, 255, .16); }
+  :root[data-world="fox"]:not([data-theme="light"]) body { background: #12072a; }
+}
+:root[data-world="fox"] .stat.big { background: linear-gradient(135deg, #a855f7, #6d28d9 70%, #3b0f7a); }
+:root[data-world="fox"] .stat.big .stat-num { background: linear-gradient(90deg, #fff, #f0d9ff); -webkit-background-clip: text; background-clip: text; }
+:root[data-world="fox"] .stage, :root[data-world="fox"] .shelf-stage, :root[data-world="fox"] .standee-stage {
+  background: radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, .6), rgba(220, 190, 255, .3) 60%, rgba(120, 50, 220, .14)); }
+:root[data-world="fox"][data-theme="dark"] .stage, :root[data-world="fox"][data-theme="dark"] .shelf-stage, :root[data-world="fox"][data-theme="dark"] .standee-stage {
+  background: radial-gradient(120% 90% at 50% 0%, rgba(140, 70, 230, .35), rgba(20, 8, 44, .55)); }
+:root[data-world="fox"] .donate-fab, :root[data-world="fox"] .feat-ic, :root[data-world="fox"] .cta-ic { background: linear-gradient(135deg, #d8b4fe, #7c3aed); }
+:root[data-world="fox"] .hero h1 { background: linear-gradient(100deg, var(--ink) 20%, #9333ea 60%, #f472b6); -webkit-background-clip: text; background-clip: text; }
+:root[data-world="fox"] .hero h1 .dot { color: #f472b6; -webkit-text-fill-color: #f472b6; }
+:root[data-world="fox"] .visit-pill { background: linear-gradient(135deg, rgba(192, 132, 252, .2), rgba(124, 58, 237, .2)); }
+:root[data-world="fox"] .loader { --ld-ink: #6d28d9; --ld-pen: #a855f7; }
+:root[data-world="fox"] .clouds { display: none; }
+/* หัวใจลอยจางๆ แทนก้อนเมฆ (สว่าง) */
+.fox-hearts { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; display: none; }
+:root[data-world="fox"] .fox-hearts { display: block; }
+:root[data-world="fox"][data-theme="dark"] .fox-hearts { display: none; }
+@media (prefers-color-scheme: dark) { :root[data-world="fox"]:not([data-theme="light"]) .fox-hearts { display: none; } }
+.fox-hearts i { position: absolute; left: var(--x); bottom: -60px; width: var(--s); height: var(--s); opacity: 0;
+  background: linear-gradient(135deg, #f5d0fe, #c4b5fd); -webkit-mask: var(--heart) center / contain no-repeat; mask: var(--heart) center / contain no-repeat;
+  animation: fox-heart var(--dur) linear var(--delay) infinite; }
+@keyframes fox-heart { 0% { transform: translate(0, 0) rotate(-10deg); opacity: 0; } 10% { opacity: .5; } 50% { transform: translate(var(--sway), -55vh) rotate(8deg); }
+  90% { opacity: .45; } 100% { transform: translate(0, -115vh) rotate(-6deg); opacity: 0; } }
+/* ดาวตก (มืด) */
+.fox-meteors { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+
+/* ====================== ตุ๊กตาหมาจิ้งจอกท้ายเว็บ ====================== */
+.fox-bed { position: relative; width: min(560px, 100%); margin: 30px auto 0; padding: 0 16px; }
+.fox-bed-stage { position: relative; height: 230px; cursor: pointer; border-radius: 24px; }
+.fox-bed-stage canvas { display: block; width: 100%; height: 100%; }
+.fox-bed-stage:focus-visible { outline-offset: 4px; }
+.fox-bubble { position: absolute; left: 50%; top: 4px; z-index: 2; transform: translateX(-10%); max-width: 78%; padding: 10px 16px; border-radius: 20px 20px 20px 6px;
+  background: var(--surface-solid); color: var(--ink); font: 600 16px/1.35 Itim, "Noto Sans Thai", sans-serif; box-shadow: var(--shadow); white-space: nowrap;
+  animation: bubble-bob 2.6s ease-in-out infinite; pointer-events: none; }
+.fox-bubble::after { content: ""; position: absolute; left: 14px; bottom: -8px; width: 16px; height: 16px; background: inherit; transform: rotate(45deg); border-radius: 3px; }
+.fox-bubble.swap { animation: bubble-swap .5s cubic-bezier(.2, 1.6, .4, 1), bubble-bob 2.6s ease-in-out .5s infinite; }
+@keyframes bubble-bob { 50% { translate: 0 -5px; } }
+@keyframes bubble-swap { from { transform: translateX(-10%) scale(.6); opacity: 0; } }
+.fox-bed-caption { margin: 2px 0 0; text-align: center; font-size: 12.5px; color: var(--muted); }
+/* แอนิเมชันกระโดดชนจอ */
+.fox-jump { position: fixed; inset: 0; z-index: 400; width: 100vw; height: 100vh; pointer-events: none; }
+.fox-flash { position: fixed; inset: 0; z-index: 399; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, .0) 30%, rgba(255, 255, 255, .55)); }
+.fox-flash.on { animation: fox-flash .45s ease-out; }
+@keyframes fox-flash { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
+html.fox-busy { overflow: hidden; }
+.stage.fox-world .stage-cue .cue-track { display: none; }
+.stage-cue.nudge { animation: cue-nudge .7s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes cue-nudge { 30% { transform: translate(-50%, -6px) scale(1.08); } }

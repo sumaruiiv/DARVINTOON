@@ -8,10 +8,10 @@ export function initBackground() {
   const ctx = c.getContext("2d");
   let w, h, dpr;
   const blobs = [
-    { hue: 212, sat: 100, x: 0.15, y: 0.2, r: 0.55, sx: 0.00011, sy: 0.00017, p: 0 },
-    { hue: 196, sat: 95, x: 0.85, y: 0.25, r: 0.5, sx: 0.00014, sy: 0.0001, p: 2 },
-    { hue: 228, sat: 85, x: 0.7, y: 0.85, r: 0.6, sx: 0.00009, sy: 0.00015, p: 4 },
-    { hue: 186, sat: 90, x: 0.2, y: 0.8, r: 0.45, sx: 0.00016, sy: 0.00012, p: 1 },
+    { hue: 212, fox: 268, sat: 100, x: 0.15, y: 0.2, r: 0.55, sx: 0.00011, sy: 0.00017, p: 0 },
+    { hue: 196, fox: 290, sat: 95, x: 0.85, y: 0.25, r: 0.5, sx: 0.00014, sy: 0.0001, p: 2 },
+    { hue: 228, fox: 252, sat: 85, x: 0.7, y: 0.85, r: 0.6, sx: 0.00009, sy: 0.00015, p: 4 },
+    { hue: 186, fox: 310, sat: 90, x: 0.2, y: 0.8, r: 0.45, sx: 0.00016, sy: 0.00012, p: 1 },
   ];
   const mouse = { x: 0.5, y: 0.5, tx: 0.5, ty: 0.5 };
   addEventListener("pointermove", (e) => { mouse.tx = e.clientX / innerWidth; mouse.ty = e.clientY / innerHeight; }, { passive: true });
@@ -27,9 +27,9 @@ export function initBackground() {
   function frame(t) {
     mouse.x += (mouse.tx - mouse.x) * 0.04;
     mouse.y += (mouse.ty - mouse.y) * 0.04;
-    const d = dark();
+    const d = dark(), fox = document.documentElement.dataset.world === "fox";
     ctx.globalCompositeOperation = "source-over";
-    ctx.fillStyle = d ? "#050b1a" : "#f3f7ff";
+    ctx.fillStyle = fox ? (d ? "#12072a" : "#f5efff") : d ? "#050b1a" : "#f3f7ff";
     ctx.fillRect(0, 0, w, h);
     ctx.globalCompositeOperation = d ? "lighter" : "multiply";
     const m = Math.max(w, h);
@@ -38,10 +38,11 @@ export function initBackground() {
       const y = (b.y + Math.cos(t * b.sy + b.p) * 0.16 + (mouse.y - 0.5) * 0.08) * h;
       const r = b.r * m * (1 + Math.sin(t * 0.0004 + i) * 0.08);
       const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-      const l = d ? 45 : 78;
-      const a = d ? 0.45 : 0.55;
-      g.addColorStop(0, `hsla(${b.hue},${b.sat}%,${l}%,${a})`);
-      g.addColorStop(1, `hsla(${b.hue},${b.sat}%,${l}%,0)`);
+      const l = fox ? (d ? 38 : 84) : d ? 45 : 78;
+      const a = fox ? (d ? 0.42 : 0.5) : d ? 0.45 : 0.55;
+      const hue = fox ? b.fox : b.hue, sat = fox ? (d ? 70 : 80) : b.sat;
+      g.addColorStop(0, `hsla(${hue},${sat}%,${l}%,${a})`);
+      g.addColorStop(1, `hsla(${hue},${sat}%,${l}%,0)`);
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, w, h);
     });
@@ -242,9 +243,67 @@ function initClouds() {
   document.body.prepend(wrap);
 }
 
+/* ---------- ธีมจิ้งจอก: หัวใจลอยจางๆ (สว่าง) / ดาวตกนานๆ ครั้ง (มืด) ---------- */
+function initFoxBackdrop() {
+  if (document.querySelector(".fox-hearts")) return;
+  const hearts = document.createElement("div");
+  hearts.className = "fox-hearts"; hearts.setAttribute("aria-hidden", "true");
+  hearts.innerHTML = Array.from({ length: 16 }, (_, i) => {
+    const x = (i * 61) % 100, s = 18 + ((i * 37) % 30), dur = 18 + ((i * 13) % 16), delay = -((i * 7) % dur);
+    return `<i style="--x:${x}%;--s:${s}px;--dur:${dur}s;--delay:${delay}s;--sway:${(i % 2 ? 1 : -1) * (20 + (i % 4) * 10)}px"></i>`;
+  }).join("");
+  const meteors = document.createElement("canvas");
+  meteors.className = "fox-meteors"; meteors.setAttribute("aria-hidden", "true");
+  document.body.prepend(hearts, meteors);
+  const ctx = meteors.getContext("2d");
+  let W = 0, H = 0, list = [], next = 0, stars = [];
+  const size = () => {
+    const d = Math.min(devicePixelRatio || 1, 2);
+    W = meteors.width = innerWidth * d; H = meteors.height = innerHeight * d;
+    stars = Array.from({ length: 70 }, () => ({ x: Math.random() * W, y: Math.random() * H * 0.8, r: (Math.random() * 1.1 + 0.3) * d, p: Math.random() * 6 }));
+  };
+  size(); addEventListener("resize", size);
+  const on = () => document.documentElement.dataset.world === "fox" &&
+    (document.documentElement.dataset.theme === "dark" || (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches));
+  function loop(t) {
+    requestAnimationFrame(loop);
+    if (!on() || document.hidden) { if (list.length || meteors.dataset.on) { ctx.clearRect(0, 0, W, H); list = []; delete meteors.dataset.on; } return; }
+    meteors.dataset.on = "1";
+    ctx.clearRect(0, 0, W, H);
+    for (const s of stars) { ctx.globalAlpha = 0.35 + 0.35 * Math.sin(t / 900 + s.p); ctx.fillStyle = "#e9dcff"; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill(); }
+    if (!REDUCED && t > next) {   // ดาวตกทีละดวง ห่างกันราว 3-7 วินาที
+      const a = Math.PI * (0.18 + Math.random() * 0.1);
+      list.push({ x: W * (0.2 + Math.random() * 0.9), y: -20, vx: -Math.cos(a), vy: Math.sin(a), sp: W * (0.0009 + Math.random() * 0.0006), len: W * (0.12 + Math.random() * 0.08), life: 1 });
+      next = t + 3000 + Math.random() * 4000;
+    }
+    list = list.filter((m) => m.life > 0 && m.y < H + 200);
+    for (const m of list) {
+      m.x += m.vx * m.sp * 16; m.y += m.vy * m.sp * 16; m.life -= 0.006;
+      const g = ctx.createLinearGradient(m.x, m.y, m.x - m.vx * m.len, m.y - m.vy * m.len);
+      g.addColorStop(0, `rgba(255,255,255,${0.95 * m.life})`); g.addColorStop(0.2, `rgba(214,170,255,${0.6 * m.life})`); g.addColorStop(1, "rgba(160,110,255,0)");
+      ctx.globalAlpha = 1; ctx.strokeStyle = g; ctx.lineWidth = 2.2 * (W / innerWidth); ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x - m.vx * m.len, m.y - m.vy * m.len); ctx.stroke();
+      ctx.fillStyle = `rgba(255,255,255,${m.life})`; ctx.beginPath(); ctx.arc(m.x, m.y, 2.4 * (W / innerWidth), 0, 7); ctx.fill();
+    }
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ---------- โลกของเว็บ: กระเป๋าดินสอ (ปกติ) ⇄ หมาจิ้งจอก (ธีมม่วง) ---------- */
+export function getWorld() { return document.documentElement.dataset.world === "fox" ? "fox" : "case"; }
+export function setWorld(w, opts = {}) {
+  const fox = w === "fox";
+  if (fox) document.documentElement.dataset.world = "fox"; else delete document.documentElement.dataset.world;
+  try { fox ? localStorage.setItem("dvn-world", "fox") : localStorage.removeItem("dvn-world"); } catch {}
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = fox ? "#7c3aed" : "#0a4fd6";
+  dispatchEvent(new CustomEvent("dvn:world", { detail: { world: fox ? "fox" : "case", land: !!opts.land } }));
+}
+
 export function initCommon() {
   initLoader();
   initClouds();
+  initFoxBackdrop();
   initBackground();
   initNav();
   initReveal();

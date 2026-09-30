@@ -10,10 +10,10 @@
   <meta property="og:description" content="เรื่องราวแปดเดือนสุดท้ายก่อนจบมัธยมของดาวินกับริว">
   <meta property="og:image" content="assets/covers/ep1.webp">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <script>try{var t=localStorage.getItem("dvn-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+  <script>try{var t=localStorage.getItem("dvn-theme");if(t)document.documentElement.dataset.theme=t;if(localStorage.getItem("dvn-world")==="fox")document.documentElement.dataset.world="fox"}catch(e){}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Itim&family=Noto+Sans+Thai:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="assets/css/features.css">
   <script type="importmap">
@@ -160,7 +160,7 @@
             </div>
           </div>
           <div class="sr-only" id="shelf-sr"></div>
-          <p class="stage-hint">ลากเพื่อหมุนชั้นหนังสือ · หนังสือที่เรืองแสงสีฟ้าแตะได้</p>
+          <p class="stage-hint"><span class="hint-wide">ลากเพื่อหมุนชั้นหนังสือ</span><span class="hint-narrow">ลากซ้าย-ขวาเพื่อเลื่อนดูชั้น</span> · หนังสือที่เรืองแสงสีฟ้าแตะได้</p>
         </div>
       </div>
     </section>
@@ -219,6 +219,11 @@
       <div class="stat"><span class="stat-num">8</span><span class="stat-label">ตอน</span></div>
       <div class="stat"><span class="stat-num" id="total-pages">96</span><span class="stat-label">หน้า</span></div>
     </section>
+    <!-- ตุ๊กตาหมาจิ้งจอกนอนอยู่ท้ายเว็บ -->
+    <section class="fox-bed" id="fox-bed" aria-label="ตุ๊กตาหมาจิ้งจอก">
+      <div class="fox-bubble" aria-live="polite"></div>
+      <div class="fox-bed-stage" role="button" tabindex="0"><canvas aria-hidden="true"></canvas></div>
+    </section>
   </main>
 
   <footer class="footer">
@@ -264,5 +269,6 @@
   <script type="module" src="assets/js/hero3d.js"></script>
   <script type="module" src="assets/js/shelf3d.js"></script>
   <script type="module" src="assets/js/standee3d.js"></script>
+  <script type="module" src="assets/js/foxworld.js"></script>
 </body>
 </html>

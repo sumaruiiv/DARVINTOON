@@ -243,8 +243,9 @@ function start() {
     const b = makeBook({ w: h, h: w, d: 0.95, x: -SW / 2 + T + 0.3, floor: sy, color: FILL[(i * 3 + 2) % FILL.length], seed: i + 20 });
     b.rotation.z = Math.PI / 2; b.position.set(-SW / 2 + T + 0.3 + w / 2 + i * 0.04, sy + h / 2, b.position.z); sy += h;
   });
-  x = 0.4;
-  for (let i = 0; i < 5; i++) { filler(x, floors[0], { h: comp * (0.7 + (i % 3) * 0.08) }); x += 0.31; }
+  // หนังสือยืนชั้นล่าง: กำหนดความกว้างแต่ละเล่มชัดเจน + เว้นช่องเล็กน้อย กันโมเดลซ้อนทับกันจนสีกะพริบ
+  x = 0.3;
+  [0.3, 0.32, 0.27, 0.34, 0.3].forEach((w, i) => { filler(x, floors[0], { w, h: comp * (0.7 + (i % 3) * 0.08) }); x += w + 0.018; });
 
   /* ของตกแต่ง: แก้วใส่ดินสอ + กระถางต้นไม้ */
   const cupMat = new THREE.MeshPhysicalMaterial({ color: 0x2f7bff, roughness: 0.25, clearcoat: 1 });
@@ -317,9 +318,13 @@ function start() {
     camera.aspect = w / h;
     narrow = w < 700;
     const fov = THREE.MathUtils.degToRad(camera.fov / 2);
-    const distW = (SW * 1.12) / 2 / (Math.tan(fov) * camera.aspect);
-    const distH = (SH * 1.18) / 2 / Math.tan(fov);
+    // จอเล็ก: ซูมเข้าไปที่หนังสือตอนต่างๆ (ลากเพื่อเลื่อนดูส่วนอื่นของชั้นได้) ชื่อบนสันหนังสือจะได้อ่านออกครบ
+    const fw = narrow ? 3.6 : SW * 1.12, fh = narrow ? 0.1 : SH * 1.18;
+    const distW = fw / 2 / (Math.tan(fov) * camera.aspect);
+    const distH = fh / 2 / Math.tan(fov);
     camera.userData.dist = Math.max(distW, distH);
+    camera.userData.halfW = Math.tan(fov) * camera.aspect * camera.userData.dist;
+    camera.userData.halfH = Math.tan(fov) * camera.userData.dist;
     camera.updateProjectionMatrix();
   }
   new ResizeObserver(resize).observe(wrap);
@@ -327,7 +332,14 @@ function start() {
 
   /* การโต้ตอบ */
   const pointer = new THREE.Vector2(9, 9), look = { x: 0, y: 0, tx: 0, ty: 0 };
-  let rotY = 0, rotVel = 0, dragging = false, lastX = 0, moved = 0, hovered = null, selected = null, anim = null;
+  let rotY = 0, rotVel = 0, dragging = false, lastX = 0, lastY = 0, moved = 0, hovered = null, selected = null, anim = null;
+  const epCenter = books.reduce((v, b) => v.add(b.userData.home.p), new THREE.Vector3()).multiplyScalar(1 / books.length);
+  const pan = { x: epCenter.x, y: epCenter.y, tx: epCenter.x, ty: epCenter.y };
+  const clampPan = () => {
+    const hw = camera.userData.halfW || 1, hh = camera.userData.halfH || 1;
+    pan.tx = Math.max(-SW / 2 + hw * 0.9, Math.min(SW / 2 - hw * 0.9, pan.tx));
+    pan.ty = Math.max(-SH / 2 + hh * 0.9, Math.min(SH / 2 - hh * 0.9, pan.ty));
+  };
   const ray = new THREE.Raycaster();
   const meshes = books.map((b) => b.userData.mesh);
   function setPointer(e) {
@@ -335,12 +347,15 @@ function start() {
     pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     look.tx = pointer.x; look.ty = pointer.y;
   }
-  canvas.addEventListener("pointerdown", (e) => { dragging = true; moved = 0; lastX = e.clientX; setPointer(e); try { canvas.setPointerCapture(e.pointerId); } catch {} });
+  canvas.addEventListener("pointerdown", (e) => { dragging = true; moved = 0; lastX = e.clientX; lastY = e.clientY; setPointer(e); try { canvas.setPointerCapture(e.pointerId); } catch {} });
   canvas.addEventListener("pointermove", (e) => {
     setPointer(e);
     if (!dragging) return;
-    const dx = e.clientX - lastX; lastX = e.clientX; moved += Math.abs(dx);
-    rotVel = dx * 0.004; rotY = Math.max(-0.5, Math.min(0.5, rotY + rotVel));
+    const dx = e.clientX - lastX, dy = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY; moved += Math.abs(dx) + Math.abs(dy);
+    if (narrow && !selected) {                // จอเล็ก: ลากเพื่อเลื่อนดูชั้นหนังสือ
+      const k = (2 * camera.userData.halfW) / canvas.clientWidth;
+      pan.tx -= dx * k; pan.ty += dy * k; clampPan();
+    } else { rotVel = dx * 0.004; rotY = Math.max(-0.5, Math.min(0.5, rotY + rotVel)); }
   });
   const up = () => {
     if (!dragging) return;
@@ -364,7 +379,7 @@ function start() {
     const { home } = book.userData;
     const out = home.p.clone().add(new THREE.Vector3(0, 0.04, 0.95));
     const drop = new THREE.Vector3(home.p.x * 0.6, floors[0] - 0.15, SD / 2 + 1.25);
-    const show = new THREE.Vector3(0, narrow ? 1.25 : 0.35, SD / 2 + (narrow ? 3.2 : 3.3));
+    const show = narrow ? new THREE.Vector3(pan.x, pan.y + camera.userData.halfH * 0.18, SD / 2 + 1.6) : new THREE.Vector3(0, 0.35, SD / 2 + 3.3);
     anim = { t0: performance.now(), dur: 1500, dir: 1, book, home, out, drop, show };
     wrap.classList.add("has-book");
   }
@@ -440,8 +455,14 @@ function start() {
     shelf.rotation.x = -look.y * 0.04 * sp;
 
     const d = camera.userData.dist;
-    camera.position.set(look.x * 0.4, 0.3 + look.y * 0.25, d);
-    camera.lookAt(0, -0.05, 0);
+    if (narrow) {
+      pan.x += (pan.tx - pan.x) * 0.18; pan.y += (pan.ty - pan.y) * 0.18;
+      camera.position.set(pan.x, pan.y + 0.15, d);
+      camera.lookAt(pan.x, pan.y, 0);
+    } else {
+      camera.position.set(look.x * 0.4, 0.3 + look.y * 0.25, d);
+      camera.lookAt(0, -0.05, 0);
+    }
 
     if (!selected && !anim) {
       ray.setFromCamera(pointer, camera);

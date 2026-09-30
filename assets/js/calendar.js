@@ -128,8 +128,8 @@ function pageHTML(e, i) {
       </header>
       <div class="cal-grid">${WD.map((w, k) => `<span class="wd${k === 0 ? " sun" : ""}">${w}</span>`).join("")}${cells.join("")}</div>
       <footer class="cal-foot"><b>“${e.title}”</b><span>แตะที่ปฏิทินเพื่อเข้าสู่เรื่องของเดือนนี้</span></footer>
-      <button type="button" class="cal-tab" aria-label="${last ? "เดือนสุดท้ายแล้ว แตะเพื่อกลับไปเดือนแรก" : "จับปลายกระดาษแล้วลากขึ้นเพื่อพลิกไปเดือนถัดไป"}">
-        <span class="cal-curl"></span><span class="cal-tab-txt">${last ? "เดือนสุดท้ายแล้ว ♡ แตะเพื่อกลับไปเดือนแรก" : "จับตรงนี้แล้วลากขึ้น ⇡"}</span>
+      <button type="button" class="cal-tab" aria-label="${last ? "เดือนสุดท้ายแล้ว ลากขึ้นเพื่อกลับไปเดือนแรก" : "จับปลายกระดาษแล้วลากขึ้นเพื่อพลิกไปเดือนถัดไป"}">
+        <span class="cal-curl"></span><span class="cal-tab-txt">${last ? "เดือนสุดท้ายแล้ว ♡ ลากขึ้นเพื่อกลับไปเดือนแรก" : "จับตรงนี้แล้วลากขึ้น ⇡"}</span>
       </button>
     </div>
     <div class="cal-face cal-back"><span>DARVIN-CHERCI</span></div>
@@ -149,16 +149,15 @@ root.innerHTML = `
     </div>
   </div>
   <div class="cal-ctrl">
-    <button type="button" class="round-btn sm" id="cal-prev" aria-label="ย้อนกลับไปเดือนก่อนหน้า">‹</button>
-    <div class="cal-dots" role="tablist" aria-label="เลือกเดือน">${EPISODES.map((e, i) => `<button type="button" role="tab" data-go="${i}" aria-label="${MONTH_TH[e.cal.month]}"></button>`).join("")}</div>
-    <button type="button" class="round-btn sm" id="cal-next" aria-label="พลิกไปเดือนถัดไป">›</button>
+    <div class="cal-dots" aria-hidden="true">${EPISODES.map((e, i) => `<span data-go="${i}"></span>`).join("")}</div>
+    <p class="cal-help">ลากปลายกระดาษขึ้น ⇡ เดือนถัดไป · ลากหัวปฏิทินลง ⇣ เดือนก่อนหน้า</p>
   </div>`;
 
 const scene = document.getElementById("cal-scene");
 const cal = document.getElementById("cal");
 const pages = [...root.querySelectorAll(".cal-page")];
 const decos = [...root.querySelectorAll(".deco")];
-const dots = [...root.querySelectorAll(".cal-dots button")];
+const dots = [...root.querySelectorAll(".cal-dots span")];
 const N = pages.length;
 let cur = 0, busy = false;
 
@@ -182,10 +181,9 @@ function layout(skipAnim) {
 let cupidTimer = 0;
 function setMonth(i) {
   decos.forEach((d, k) => d.classList.toggle("on", k === i));
-  dots.forEach((d, k) => { d.classList.toggle("on", k === i); d.setAttribute("aria-selected", String(k === i)); });
+  dots.forEach((d, k) => d.classList.toggle("on", k === i));
   cal.classList.toggle("pink", i === 7);
-  document.getElementById("cal-prev").disabled = i === 0;
-  document.getElementById("cal-next").disabled = i === N - 1;
+  cal.classList.toggle("can-prev", i > 0);
   i === 5 ? fw.start() : fw.stop();
   clearInterval(cupidTimer);
   if (i === 6) {
@@ -267,60 +265,97 @@ function goTo(i) {
   const run = () => { if (cur === i) return; step(); setTimeout(run, DUR * 0.55); };
   run();
 }
-document.getElementById("cal-prev").addEventListener("click", flipPrev);
-document.getElementById("cal-next").addEventListener("click", flipNext);
-dots.forEach((d) => d.addEventListener("click", () => goTo(+d.dataset.go)));
 
-/* ลากปลายกระดาษขึ้น */
-let drag = null;
+/* ลากเท่านั้น (ทุกอุปกรณ์): ลากปลายกระดาษขึ้น = เดือนถัดไป · ลากหัวปฏิทินลง = ดึงเดือนก่อนหน้ากลับมา
+   แตะเฉยๆ จะไม่พลิก แค่ยกกระดาษขึ้นเล็กน้อยเป็นคำใบ้ว่าต้องลาก */
+const MIN_DRAG = 14;
+let drag = null, suppressClick = 0;
+function nudge(page, deg) {
+  page.classList.add("flip-anim"); page.style.transform = `rotateX(${deg}deg)`;
+  setTimeout(() => { page.style.transform = ""; setTimeout(() => page.classList.remove("flip-anim"), DUR); }, 180);
+}
 root.addEventListener("pointerdown", (e) => {
-  const tab = e.target.closest(".cal-tab");
-  if (!tab || busy) return;
-  const page = tab.closest(".cal-page");
-  if (+page.dataset.i !== cur) return;
-  e.preventDefault();
-  try { tab.setPointerCapture(e.pointerId); } catch {}
-  drag = { page, tab, y0: e.clientY, t0: performance.now(), a: 0, h: page.getBoundingClientRect().height };
-  page.classList.add("dragging");
+  if (busy || e.button > 0) return;
+  const tab = e.target.closest(".cal-tab"), head = e.target.closest(".cal-head");
+  const page = (tab || head)?.closest(".cal-page");
+  if (!page || +page.dataset.i !== cur) return;
+  if (head && cur === 0) return;
+  if (tab) e.preventDefault();
+  drag = { mode: tab ? "next" : "prev", page, prev: head ? pages[cur - 1] : null, y0: e.clientY, x0: e.clientX, t0: performance.now(),
+    a: 0, h: page.getBoundingClientRect().height, started: false, pid: e.pointerId, el: tab || head };
 });
 root.addEventListener("pointermove", (e) => {
   if (!drag) return;
-  const up = drag.y0 - e.clientY;
-  const last = cur === N - 1;
-  let a = Math.max(0, (up / (drag.h * 0.85)) * 180);
-  a = last ? Math.min(28, a * 0.35) : Math.min(178, a);
-  drag.a = a;
-  drag.page.style.transform = `rotateX(${a}deg)`;
-  drag.page.style.setProperty("--lift", (a / 180).toFixed(3));
+  const dy = e.clientY - drag.y0, dx = e.clientX - drag.x0;
+  if (!drag.started) {
+    if (Math.abs(dy) < MIN_DRAG) return;
+    if (drag.mode === "prev" && (dy < 0 || Math.abs(dx) > Math.abs(dy))) { drag = null; return; }
+    drag.started = true;
+    try { drag.el.setPointerCapture(drag.pid); } catch {}
+    if (drag.mode === "next") drag.page.classList.add("dragging");
+    else {
+      const p = drag.prev;
+      p.classList.remove("gone"); p.classList.add("dragging");
+      p.style.visibility = ""; p.style.zIndex = "120"; p.style.transform = "rotateX(180deg)";
+    }
+  }
+  e.preventDefault();
+  if (drag.mode === "next") {
+    const last = cur === N - 1;
+    let a = Math.max(0, (-dy / (drag.h * 0.85)) * 180);
+    a = last ? Math.min(28, a * 0.35) : Math.min(178, a);
+    drag.a = a;
+    drag.page.style.transform = `rotateX(${a}deg)`;
+    drag.page.style.setProperty("--lift", (a / 180).toFixed(3));
+  } else {
+    const a = 180 - Math.min(178, Math.max(0, (dy / (drag.h * 0.85)) * 180));
+    drag.a = a;
+    drag.prev.style.transform = `rotateX(${a}deg)`;
+  }
 });
 const endDrag = (e) => {
   if (!drag) return;
-  const { page, a, t0, y0 } = drag;
-  drag = null;
-  page.classList.remove("dragging");
-  page.style.removeProperty("--lift");
-  const moved = Math.abs(y0 - (e.clientY ?? y0));
-  const fast = (y0 - (e.clientY ?? y0)) / Math.max(1, performance.now() - t0) > 0.6;
-  if (cur === N - 1) {
-    page.classList.add("flip-anim"); page.style.transform = "";
-    setTimeout(() => page.classList.remove("flip-anim"), DUR);
-    if (moved < 6) goTo(0);
+  const d = drag; drag = null;
+  if (!d.started) {                                   // แตะเฉยๆ: ไม่พลิก ให้กระดาษกระดิกเป็นคำใบ้
+    if (d.mode === "next") { nudge(d.page, cur === N - 1 ? 8 : 14); suppressClick = performance.now(); }
     return;
   }
-  if (moved < 6 || a > 55 || fast) flipNext();
-  else { page.classList.add("flip-anim"); page.style.transform = ""; setTimeout(() => page.classList.remove("flip-anim"), DUR); }
+  suppressClick = performance.now();
+  const dist = Math.abs((e.clientY ?? d.y0) - d.y0);
+  const fast = dist / Math.max(1, performance.now() - d.t0) > 0.6;
+  if (d.mode === "next") {
+    d.page.classList.remove("dragging"); d.page.style.removeProperty("--lift");
+    if (cur === N - 1) {                              // เดือนสุดท้าย: ลากขึ้นพอประมาณ = กลับไปเดือนแรก
+      d.page.classList.add("flip-anim"); d.page.style.transform = "";
+      setTimeout(() => d.page.classList.remove("flip-anim"), DUR);
+      if (d.a > 10) setTimeout(() => goTo(0), 200);
+      return;
+    }
+    if (d.a > 55 || (fast && d.a > 12)) flipNext();
+    else { d.page.classList.add("flip-anim"); d.page.style.transform = ""; setTimeout(() => d.page.classList.remove("flip-anim"), DUR); }
+  } else {
+    const p = d.prev;
+    p.classList.remove("dragging"); p.classList.add("flip-anim");
+    if (180 - d.a > 55 || (fast && 180 - d.a > 12)) {
+      busy = true; p.style.transform = "rotateX(0deg)"; cur--; setMonth(cur);
+      setTimeout(() => { p.classList.remove("flip-anim"); layout(); busy = false; }, DUR);
+    } else {
+      busy = true; p.style.transform = "rotateX(180deg)";
+      setTimeout(() => { p.classList.remove("flip-anim"); layout(); busy = false; }, DUR);
+    }
+  }
 };
 root.addEventListener("pointerup", endDrag);
 root.addEventListener("pointercancel", endDrag);
-root.addEventListener("keydown", (e) => {
-  if (e.target.closest(".cal-tab") && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); cur === N - 1 ? goTo(0) : flipNext(); }
+root.addEventListener("keydown", (e) => {   // คีย์บอร์ด: Enter ที่ปลายกระดาษ = เดือนถัดไป, Shift+Enter = เดือนก่อนหน้า
+  if (e.target.closest(".cal-tab") && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); e.shiftKey ? flipPrev() : cur === N - 1 ? goTo(0) : flipNext(); }
 });
 
 /* แตะที่หน้าปฏิทิน → ถามก่อนเข้าเรื่อง */
 const dlg = document.getElementById("cal-confirm");
 root.addEventListener("click", (e) => {
   const face = e.target.closest(".cal-front");
-  if (!face || e.target.closest(".cal-tab") || busy) return;
+  if (!face || e.target.closest(".cal-tab") || busy || performance.now() - suppressClick < 400) return;
   const i = +face.closest(".cal-page").dataset.i;
   if (i !== cur) return;
   ask(EPISODES[i]);

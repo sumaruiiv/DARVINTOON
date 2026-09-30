@@ -11,7 +11,7 @@ const TAU = Math.PI * 2;
 
 const OUTFIT_NAME = { school: "ชุดนักเรียน", pe: "ชุดพละ", rd: "ชุด รด.", native: "ชุดพื้นเมือง" };
 const CHARS = [
-  { id: "riw", th: "ริว", en: "RIW", outfits: ["school", "pe", "rd", "native"], color: 0x1f6bff, base: ["#1a56c9", "#0a2a66"], aura: 0x5cc2ff, x: -1.55 },
+  { id: "riw", th: "ริว", en: "REW", outfits: ["school", "pe", "rd", "native"], color: 0x1f6bff, base: ["#1a56c9", "#0a2a66"], aura: 0x5cc2ff, x: -1.55 },
   { id: "davin", th: "ดาวิน", en: "DAVIN", outfits: ["school", "pe", "native"], color: 0x5cc2ff, base: ["#8fd8ff", "#2a7bf0"], aura: 0xa9d8ff, x: 1.55 },
 ];
 
@@ -76,14 +76,17 @@ function start() {
     const k = `${ch.id}-${o}`;
     tex[k] = { art: load(`assets/standee/${k}.webp`), acr: loader.load(`assets/standee/${k}-acrylic.png`) };
   }));
-  const ASPECT = { "davin-school": 422 / 1200, "davin-pe": 501 / 1200, "davin-native": 419 / 1200, "riw-school": 458 / 1200, "riw-pe": 452 / 1200, "riw-rd": 458 / 1200, "riw-native": 455 / 1200 };
+  // [กว้าง/สูงของภาพ, ตำแหน่งขอบล่างของแผ่นอะคริลิก (สัดส่วนจากด้านบนภาพ)]
+  const ASPECT = { "davin-school": [514 / 1200, 1132 / 1200], "davin-pe": [583 / 1200, 1136 / 1200], "davin-native": [511 / 1200, 1133 / 1200],
+    "riw-school": [545 / 1200, 1127 / 1200], "riw-pe": [540 / 1200, 1118 / 1200], "riw-rd": [545 / 1200, 1129 / 1200], "riw-native": [543 / 1200, 1129 / 1200] };
 
   const shadowTex = radialTexture([[0, "rgba(10,30,80,.45)"], [1, "rgba(10,30,80,0)"]]);
   const dustTex = radialTexture([[0, "rgba(235,240,250,.95)"], [0.5, "rgba(200,210,230,.45)"], [1, "rgba(200,210,230,0)"]]);
   const glowTex = radialTexture([[0, "rgba(255,255,255,.95)"], [0.3, "rgba(255,255,255,.45)"], [1, "rgba(255,255,255,0)"]]);
   const spark = sparkTexture();
 
-  const H = 3.1, T = 0.075, LAYERS = 7;
+  const H = 3.45, T = 0.07;
+  const holoMats = [];
   const plane = new THREE.PlaneGeometry(1, 1);
   const stands = CHARS.map((ch) => {
     const root = new THREE.Group(); root.position.x = ch.x; scene.add(root);
@@ -96,25 +99,62 @@ function start() {
     const shadow = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.5), new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }));
     shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.001; root.add(shadow);
 
-    // ตัวสแตนดี้ (หมุนได้รอบแกนตั้ง)
-    const spin = new THREE.Group(); spin.position.y = 0.14; root.add(spin);
-    const tab = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.14, T), new THREE.MeshPhysicalMaterial({ color: 0xe8f4ff, transparent: true, opacity: 0.45, roughness: 0.05 }));
-    tab.position.y = 0.02; spin.add(tab);
+    // ร่องเสียบบนฐาน (ทึบ ไม่ซ้อนกับแผ่นใส จึงไม่กะพริบ)
+    const slot = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.012, 0.13), new THREE.MeshStandardMaterial({ color: 0x0a1a44, roughness: 0.6 }));
+    slot.position.y = 0.149; root.add(slot);
+
+    // ตัวสแตนดี้ (หมุนได้รอบแกนตั้ง): แผ่นอะคริลิกใส 2 หน้า + ขอบ + ภาพตัวละคร + ฟิล์มสีรุ้ง (plasmatic)
+    const spin = new THREE.Group(); spin.position.y = 0.156; root.add(spin);
     const acrMats = [], acrMeshes = [];
-    for (let i = 0; i < LAYERS; i++) {
-      const m = new THREE.MeshBasicMaterial({ color: 0xe6f3ff, transparent: true, opacity: i === 0 || i === LAYERS - 1 ? 0.22 : 0.1, depthWrite: false, side: THREE.DoubleSide });
-      const mesh = new THREE.Mesh(plane, m);
-      mesh.position.z = -T / 2 + (T * i) / (LAYERS - 1);
-      mesh.renderOrder = 1;
+    const mkAcr = (z, op, ro) => {
+      const m = new THREE.MeshBasicMaterial({ color: 0xeaf6ff, transparent: true, opacity: op, depthWrite: false, side: THREE.DoubleSide });
+      const mesh = new THREE.Mesh(plane, m); mesh.position.z = z; mesh.renderOrder = ro;
       spin.add(mesh); acrMats.push(m); acrMeshes.push(mesh);
-    }
+    };
+    mkAcr(-T / 2, 0.07, 1); mkAcr(T / 2, 0.07, 4);
     const artMat = new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.35, side: THREE.DoubleSide, toneMapped: false });
     const art = new THREE.Mesh(plane, artMat);
-    art.renderOrder = 2;  // วาดภาพตัวละครทีหลังแผ่นอะคริลิก ภาพจะได้คมชัดไม่ถูกฝ้าทับ
+    art.renderOrder = 2;
     spin.add(art);
-    // ประกายสะท้อนบนแผ่นอะคริลิก
-    const sheen = new THREE.Mesh(plane, new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, opacity: 0.0, depthWrite: false, blending: THREE.AdditiveBlending }));
-    sheen.position.z = T / 2 + 0.002; sheen.renderOrder = 3; spin.add(sheen);
+    // ขอบอะคริลิกหนา (มองจากด้านข้างจะเห็นเป็นสันใส)
+    const edgeMats = [], edgeMeshes = [];
+    for (let i = 0; i < 4; i++) {
+      const m = new THREE.ShaderMaterial({
+        uniforms: { uMask: { value: null } }, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+        vertexShader: "varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
+        fragmentShader: `uniform sampler2D uMask; varying vec2 vUv;
+          void main(){ vec2 px = vec2(0.004, 0.0022); float c = texture2D(uMask, vUv).r;
+            float mn = min(min(texture2D(uMask, vUv+vec2(px.x,0.)).r, texture2D(uMask, vUv-vec2(px.x,0.)).r), min(texture2D(uMask, vUv+vec2(0.,px.y)).r, texture2D(uMask, vUv-vec2(0.,px.y)).r));
+            float e = c * (1.0 - mn); if (e < 0.05) discard; gl_FragColor = vec4(0.86, 0.95, 1.0, e * 0.55); }`,
+      });
+      const mesh = new THREE.Mesh(plane, m); mesh.position.z = -T / 2 + (T * i) / 3; mesh.renderOrder = 3;
+      spin.add(mesh); edgeMats.push(m); edgeMeshes.push(mesh);
+    }
+    // ฟิล์มโฮโลแกรมสีรุ้ง: จางๆ ตลอด และสว่างขึ้นตามความเร็ว/มุมที่หมุน
+    const holo = new THREE.ShaderMaterial({
+      uniforms: { uMask: { value: null }, uArt: { value: null }, uTime: { value: 0 }, uAngle: { value: 0 }, uSpin: { value: 0 } },
+      // บวกแสงเฉพาะสี ไม่แตะค่า alpha ของแคนวาส (ไม่งั้นพื้นหลังเว็บจะถูกบังเป็นเงามืด)
+      transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.CustomBlending,
+      blendEquation: THREE.AddEquation, blendSrc: THREE.OneFactor, blendDst: THREE.OneFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.OneFactor,
+      vertexShader: "varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
+      fragmentShader: `uniform sampler2D uMask; uniform sampler2D uArt; uniform float uTime, uAngle, uSpin; varying vec2 vUv;
+        void main(){
+          float m = texture2D(uMask, vUv).r; if (m < 0.5) discard;
+          float art = texture2D(uArt, vUv).a;
+          float ph = vUv.x * 1.6 + vUv.y * 2.4 + uAngle * 0.55 + uTime * 0.06;
+          vec3 rainbow = 0.55 + 0.45 * cos(6.2831 * (vec3(0.0, 0.33, 0.67) + ph));
+          float bands = 0.55 + 0.45 * sin((vUv.x * 7.0 - vUv.y * 11.0) + uAngle * 4.0 + uTime * 0.8);
+          float sweep = smoothstep(0.35, 0.0, abs(fract(vUv.x * 0.8 + vUv.y * 0.4 - uAngle * 0.32 - uTime * 0.05) - 0.5) - 0.12);
+          float view = abs(sin(uAngle));
+          float k = (0.03 + 0.45 * uSpin + 0.1 * view) * bands + sweep * (0.08 + 0.35 * uSpin);
+          k *= mix(0.55, 1.0, art);
+          gl_FragColor = vec4(rainbow * k, 1.0);
+        }`,
+    });
+    holoMats.push(holo);
+    const holoF = new THREE.Mesh(plane, holo); holoF.position.z = T / 2 + 0.003; holoF.renderOrder = 5; spin.add(holoF);
+    const holoB = new THREE.Mesh(plane, holo); holoB.position.z = -T / 2 - 0.003; holoB.renderOrder = 5; spin.add(holoB);
+    const sheen = holoF;
 
     // ออร่า + ประกาย
     const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: ch.aura, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
@@ -131,20 +171,21 @@ function start() {
       root.add(s); return s;
     });
 
-    const st = { ch, root, spin, art, artMat, acrMats, acrMeshes, sheen, aura, ring, sparks, dust, idx: 0, angle: 0, vel: 0,
+    const st = { ch, root, spin, art, artMat, acrMats, acrMeshes, edgeMats, edgeMeshes, holo, holoMeshes: [holoF, holoB], sheen, aura, ring, sparks, dust, idx: 0, angle: 0, vel: 0,
       busy: false, change: null, auraT: -1, dustT: -1, dustSeeds: [] };
     applyOutfit(st);
     return st;
   });
 
   function applyOutfit(st) {
-    const k = `${st.ch.id}-${st.ch.outfits[st.idx]}`, a = ASPECT[k];
-    const w = H * a;
+    const k = `${st.ch.id}-${st.ch.outfits[st.idx]}`, [a, bot] = ASPECT[k];
+    const w = H * a, cy = H / 2 - (1 - bot) * H;          // ขอบล่างของแผ่นใสวางพอดีบนฐาน
     st.artMat.map = tex[k].art; st.artMat.needsUpdate = true;
-    st.art.scale.set(w, H, 1); st.art.position.y = H / 2;
+    st.art.scale.set(w, H, 1); st.art.position.y = cy;
     st.acrMats.forEach((m) => { m.alphaMap = tex[k].acr; m.needsUpdate = true; });
-    st.acrMeshes.forEach((m) => { m.scale.set(w, H, 1); m.position.y = H / 2; });
-    st.sheen.scale.set(w * 0.9, H * 0.9, 1); st.sheen.position.y = H / 2;
+    st.edgeMats.forEach((m) => { m.uniforms.uMask.value = tex[k].acr; });
+    st.holo.uniforms.uMask.value = tex[k].acr; st.holo.uniforms.uArt.value = tex[k].art;
+    [...st.acrMeshes, ...st.edgeMeshes, ...st.holoMeshes].forEach((m) => { m.scale.set(w, H, 1); m.position.y = cy; });
     const label = document.querySelector(`[data-sd="${st.ch.id}"] [data-outfit]`);
     if (label) {
       label.textContent = OUTFIT_NAME[st.ch.outfits[st.idx]];
@@ -250,9 +291,11 @@ function start() {
       st.spin.rotation.y = st.angle;
       st.root.position.y = Math.sin(t * 1.4 + i * 1.7) * 0.03 * (REDUCED ? 0 : 1);
 
-      // ประกายเงาสะท้อนตามมุมหมุน
-      camDir.set(Math.sin(st.angle), 0, Math.cos(st.angle));
-      st.sheen.material.opacity = Math.max(0, camDir.z) * 0.08 + Math.pow(Math.max(0, Math.sin(st.angle * 2)), 8) * 0.25;
+      // ฟิล์มสีรุ้ง: ยิ่งหมุนเร็วยิ่งเห็นชัด
+      const speed = Math.min(1, Math.abs(st.angle - (st.lastAngle ?? st.angle)) * 8);
+      st.lastAngle = st.angle;
+      st.spinGlow = (st.spinGlow || 0) + (speed - (st.spinGlow || 0)) * 0.08;
+      st.holo.uniforms.uTime.value = t; st.holo.uniforms.uAngle.value = st.angle; st.holo.uniforms.uSpin.value = st.spinGlow;
 
       // ฝุ่นฟุ้งตอนหมุนแรง
       const dk = st.dustT < 0 ? 1 : (now - st.dustT) / 1500;
