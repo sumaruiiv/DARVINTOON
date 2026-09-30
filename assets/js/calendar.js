@@ -150,7 +150,7 @@ root.innerHTML = `
   </div>
   <div class="cal-ctrl">
     <div class="cal-dots" aria-hidden="true">${EPISODES.map((e, i) => `<span data-go="${i}"></span>`).join("")}</div>
-    <p class="cal-help">ลากปลายกระดาษขึ้น ⇡ เดือนถัดไป · ลากหัวปฏิทินลง ⇣ เดือนก่อนหน้า</p>
+    <p class="cal-help">ลากปฏิทินขึ้น ⇡ เดือนถัดไป · ลากลง ⇣ เดือนก่อนหน้า</p>
   </div>`;
 
 const scene = document.getElementById("cal-scene");
@@ -274,22 +274,27 @@ function nudge(page, deg) {
   page.classList.add("flip-anim"); page.style.transform = `rotateX(${deg}deg)`;
   setTimeout(() => { page.style.transform = ""; setTimeout(() => page.classList.remove("flip-anim"), DUR); }, 180);
 }
+// จับตรงไหนของปฏิทินก็ได้: ลากขึ้น = เดือนถัดไป · ลากลง = เดือนก่อนหน้า (ทิศทางตัดสินตอนเริ่มลาก)
 root.addEventListener("pointerdown", (e) => {
   if (busy || e.button > 0) return;
-  const tab = e.target.closest(".cal-tab"), head = e.target.closest(".cal-head");
-  const page = (tab || head)?.closest(".cal-page");
+  const page = e.target.closest(".cal-page");
   if (!page || +page.dataset.i !== cur) return;
-  if (head && cur === 0) return;
-  if (tab) e.preventDefault();
-  drag = { mode: tab ? "next" : "prev", page, prev: head ? pages[cur - 1] : null, y0: e.clientY, x0: e.clientX, t0: performance.now(),
-    a: 0, h: page.getBoundingClientRect().height, started: false, pid: e.pointerId, el: tab || head };
+  const tab = e.target.closest(".cal-tab");
+  if (tab || e.pointerType !== "mouse") e.preventDefault();
+  drag = { mode: null, page, prev: null, y0: e.clientY, x0: e.clientX, t0: performance.now(), onTab: !!tab,
+    a: 0, h: page.getBoundingClientRect().height, started: false, pid: e.pointerId, el: page };
 });
 root.addEventListener("pointermove", (e) => {
   if (!drag) return;
   const dy = e.clientY - drag.y0, dx = e.clientX - drag.x0;
   if (!drag.started) {
     if (Math.abs(dy) < MIN_DRAG) return;
-    if (drag.mode === "prev" && (dy < 0 || Math.abs(dx) > Math.abs(dy))) { drag = null; return; }
+    if (Math.abs(dx) > Math.abs(dy) * 1.3) { drag = null; return; }   // ปัดแนวนอนไม่นับ
+    drag.mode = dy < 0 ? "next" : "prev";
+    if (drag.mode === "prev") {
+      if (cur === 0) { drag = null; return; }
+      drag.prev = pages[cur - 1];
+    }
     drag.started = true;
     try { drag.el.setPointerCapture(drag.pid); } catch {}
     if (drag.mode === "next") drag.page.classList.add("dragging");
@@ -316,8 +321,8 @@ root.addEventListener("pointermove", (e) => {
 const endDrag = (e) => {
   if (!drag) return;
   const d = drag; drag = null;
-  if (!d.started) {                                   // แตะเฉยๆ: ไม่พลิก ให้กระดาษกระดิกเป็นคำใบ้
-    if (d.mode === "next") { nudge(d.page, cur === N - 1 ? 8 : 14); suppressClick = performance.now(); }
+  if (!d.started) {                                   // แตะเฉยๆ ที่ปลายกระดาษ: ไม่พลิก ให้กระดาษกระดิกเป็นคำใบ้
+    if (d.onTab) { nudge(d.page, cur === N - 1 ? 8 : 14); suppressClick = performance.now(); }
     return;
   }
   suppressClick = performance.now();
@@ -346,6 +351,12 @@ const endDrag = (e) => {
   }
 };
 root.addEventListener("pointerup", endDrag);
+// มือถือ/แท็บเล็ต: ถ้านิ้วเริ่มแตะบนปฏิทิน ห้ามหน้าเว็บเลื่อน (iOS Safari ต้องกันที่ touchmove แบบ passive:false)
+let touchOnCal = false;
+const calBody = root.querySelector(".cal-body");
+calBody.addEventListener("touchstart", (e) => { touchOnCal = !busy && !!e.target.closest(".cal-page.current"); }, { passive: true });
+calBody.addEventListener("touchmove", (e) => { if (touchOnCal && e.cancelable) e.preventDefault(); }, { passive: false });
+calBody.addEventListener("touchend", () => { touchOnCal = false; }, { passive: true });
 root.addEventListener("pointercancel", endDrag);
 root.addEventListener("keydown", (e) => {   // คีย์บอร์ด: Enter ที่ปลายกระดาษ = เดือนถัดไป, Shift+Enter = เดือนก่อนหน้า
   if (e.target.closest(".cal-tab") && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); e.shiftKey ? flipPrev() : cur === N - 1 ? goTo(0) : flipNext(); }

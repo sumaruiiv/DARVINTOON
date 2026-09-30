@@ -357,7 +357,8 @@ function start() {
       pan.tx -= dx * k; pan.ty += dy * k; clampPan();
     } else { rotVel = dx * 0.004; rotY = Math.max(-0.5, Math.min(0.5, rotY + rotVel)); }
   });
-  const up = () => {
+  const up = (e) => {
+    if (e && e.pointerType !== "mouse") setTimeout(() => { pointer.set(9, 9); look.tx = look.ty = 0; }, 60);
     if (!dragging) return;
     dragging = false;
     if (moved < 7 && hovered && !selected && !anim) pick(hovered);

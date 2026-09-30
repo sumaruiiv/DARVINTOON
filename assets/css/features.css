@@ -136,7 +136,8 @@ html { overflow-x: clip; }
 .cal-dots { display: flex; gap: 8px; }
 .cal-dots span { width: 9px; height: 9px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 30%, transparent); transition: width .3s, background .3s; }
 .cal-dots span.on { width: 26px; background: var(--accent); }
-.cal.can-prev .cal-page.current .cal-head { cursor: grab; touch-action: none; }
+.cal-page.current .cal-front { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.cal.can-prev .cal-page.current .cal-head { cursor: grab; }
 .cal.can-prev .cal-page.current .cal-head::after { content: "⇣ ลากลงเพื่อย้อนเดือน"; position: absolute; left: 50%; bottom: .8cqw; transform: translateX(-50%);
   font: 600 2.4cqw/1 "Noto Sans Thai", sans-serif; color: rgba(255, 255, 255, .75); white-space: nowrap; pointer-events: none; }
 
@@ -484,7 +485,7 @@ html { overflow-x: clip; }
 
 /* ====================== ตุ๊กตาหมาจิ้งจอกท้ายเว็บ ====================== */
 .fox-bed { position: relative; width: min(560px, 100%); margin: 30px auto 0; padding: 0 16px; }
-.fox-bed-stage { position: relative; height: 230px; cursor: pointer; border-radius: 24px; }
+.fox-bed-stage { position: relative; height: 260px; cursor: pointer; border-radius: 24px; }
 .fox-bed-stage canvas { display: block; width: 100%; height: 100%; }
 .fox-bed-stage:focus-visible { outline-offset: 4px; }
 .fox-bubble { position: absolute; left: 50%; top: 4px; z-index: 2; transform: translateX(-10%); max-width: 78%; padding: 10px 16px; border-radius: 20px 20px 20px 6px;

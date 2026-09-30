@@ -54,8 +54,12 @@ if (bed) {
     const resize = () => {
       const w = stage.clientWidth, h = stage.clientHeight;
       renderer.setSize(w, h, false); cam.aspect = w / h;
-      cam.position.set(3.3, 2.5, 5.6); cam.lookAt(-0.15, 0.6, 0);
-      cam.fov = w < 420 ? 36 : 30; cam.updateProjectionMatrix();
+      // วางกล้องให้เห็นน้องเต็มตัวเสมอ (รวมหาง หู และตอนกระโดดเรียกร้องความสนใจ) ไม่ว่าจอกว้างหรือแคบ
+      cam.fov = 30; cam.updateProjectionMatrix();
+      const half = THREE.MathUtils.degToRad(cam.fov / 2), halfW = Math.atan(Math.tan(half) * cam.aspect);
+      const R = 2.55, dist = R / Math.sin(Math.min(half, halfW));
+      const center = new THREE.Vector3(-0.25, 0.8, -0.25), dir = new THREE.Vector3(3.3, 2.3, 5.6).normalize();
+      cam.position.copy(center).addScaledVector(dir, dist); cam.lookAt(center);
     };
     new ResizeObserver(resize).observe(stage); resize();
     let visible = false, hover = 0, hoverT = 0;
@@ -75,7 +79,14 @@ if (bed) {
     })();
     stage.classList.add("ready");
 
-    const start = () => { if (!busy) { busy = true; jump(stage.getBoundingClientRect(), () => (busy = false)); } };
+    // ตอนกระโดด ซ่อนตัวที่นอนอยู่ไว้ (ไม่ให้เห็นน้องสองตัวพร้อมกัน) แล้วค่อยกลับมาหลังจบแอนิเมชัน
+    const start = () => {
+      if (busy) return;
+      busy = true;
+      const rect = stage.getBoundingClientRect();
+      canvas.style.visibility = "hidden"; bubble.style.visibility = "hidden";
+      jump(rect, () => { busy = false; canvas.style.visibility = ""; bubble.style.visibility = ""; });
+    };
     stage.addEventListener("click", start);
     stage.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); start(); } });
   } catch (err) {

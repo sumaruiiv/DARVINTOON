@@ -123,10 +123,13 @@ export function makeFox({ collar = true } = {}) {
   const leg = new THREE.CapsuleGeometry(0.2, 0.62, 10, 20);
   body.add(part(leg, brown, [0.46, 0.24, 1.18], [1.05, 1, 0.95], [Math.PI / 2 - 0.08, 0, -0.12]));
   body.add(part(leg, brown, [-0.46, 0.24, 1.18], [1.05, 1, 0.95], [Math.PI / 2 - 0.08, 0, 0.12]));
-  // หางฟู: ทรงกระสวยโค้งอ้อมมาข้างลำตัว
-  const tail = new THREE.Group(); tail.position.set(0, 0.6, -1.7); body.add(tail);
-  const tailPts = [[0, 0, 0, 0.3], [-0.45, -0.06, -0.25, 0.42], [-1.0, -0.14, -0.2, 0.48], [-1.42, -0.2, 0.2, 0.44], [-1.62, -0.24, 0.7, 0.34], [-1.66, -0.26, 1.08, 0.22]];
-  tailPts.forEach(([x, y, z, r]) => tail.add(part(S, brown, [x, y, z], [r, r * 0.85, r])));
+  // หางฟูชิ้นเดียว: โคนเล็ก ป่องกลาง ปลายมน โค้งอ้อมมาข้างลำตัว
+  const tail = new THREE.Group(); tail.position.set(0, 0.6, -1.62); body.add(tail);
+  const tailCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0.05, 0.05, 0.1), new THREE.Vector3(-0.45, -0.05, -0.28), new THREE.Vector3(-1.05, -0.14, -0.22),
+    new THREE.Vector3(-1.5, -0.2, 0.25), new THREE.Vector3(-1.66, -0.24, 0.8), new THREE.Vector3(-1.62, -0.26, 1.2),
+  ]);
+  tail.add(part(fluffyTube(tailCurve, (u) => 0.6 * Math.pow(Math.sin(Math.PI * Math.min(1, 0.06 + u * 0.97)), 0.55) * (0.55 + 0.45 * Math.sin(Math.PI * Math.min(1, u * 1.3)))), brown, [0, 0.04, 0], [1, 0.82, 1]));
   // หัวโต
   const head = new THREE.Group(); head.position.set(0, 1.02, 1.0); body.add(head);
   head.add(part(S, orange, [0, 0, 0], [1.0, 0.84, 0.88]));
@@ -156,18 +159,44 @@ export function makeFox({ collar = true } = {}) {
 
   let note = null, collarMesh = null;
   if (collar) {
-    // ปลอกคอสีแดงรอบคอ (ระหว่างหัวกับลำตัว) + ห่วงทอง + โน้ตพับห้อยอยู่ข้างแก้ม
-    collarMesh = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.085, 16, 72), new THREE.MeshPhysicalMaterial({ color: COL.red, roughness: 0.35, clearcoat: 0.8, sheen: 0.4 }));
-    collarMesh.position.set(0, 0.86, 0.28); collarMesh.rotation.x = -0.22; collarMesh.scale.set(1.1, 0.72, 1);
+    // ปลอกคอสีแดง: คำนวณให้แนบไปกับผิวตุ๊กตารอบคอพอดี (ไม่ลอยห่างจากตัว)
+    const blobs = [
+      [[0, 0.62, -0.55], [1.02, 0.62, 1.45]], [[0, 0.78, -0.2], [0.8, 0.46, 0.9]], [[0, 0.5, 0.55], [0.72, 0.42, 0.55]],
+      [[0, 1.02, 1.0], [1.0, 0.84, 0.88]], [[0.36, 0.74, 1.5], [0.5, 0.42, 0.45]], [[-0.36, 0.74, 1.5], [0.5, 0.42, 0.45]],
+    ].map(([c, r]) => ({ c: new THREE.Vector3(...c), r: new THREE.Vector3(...r) }));
+    const inside = (p) => blobs.some(({ c, r }) => ((p.x - c.x) / r.x) ** 2 + ((p.y - c.y) / r.y) ** 2 + ((p.z - c.z) / r.z) ** 2 < 1);
+    const C0 = new THREE.Vector3(0, 0.86, 0.42);
+    const axis = new THREE.Vector3(0, 0.3, 1).normalize();
+    const e1 = new THREE.Vector3(1, 0, 0), e2 = new THREE.Vector3().crossVectors(axis, e1).normalize();
+    const surf = (phi) => {
+      const d = e1.clone().multiplyScalar(Math.cos(phi)).addScaledVector(e2, Math.sin(phi));
+      let lo = 0, hi = 2.2;
+      for (let i = 0; i < 28; i++) { const m = (lo + hi) / 2; inside(C0.clone().addScaledVector(d, m)) ? (lo = m) : (hi = m); }
+      const p = C0.clone().addScaledVector(d, lo + 0.035);
+      p.y = Math.max(0.1, p.y);
+      return p;
+    };
+    const pts = []; for (let i = 0; i < 64; i++) pts.push(surf((i / 64) * Math.PI * 2));
+    const collarCurve = new THREE.CatmullRomCurve3(pts, true, "centripetal");
+    collarMesh = new THREE.Mesh(new THREE.TubeGeometry(collarCurve, 160, 0.075, 14, true),
+      new THREE.MeshPhysicalMaterial({ color: COL.red, roughness: 0.35, clearcoat: 0.8, sheen: 0.4 }));
+    collarMesh.castShadow = true;
     body.add(collarMesh);
+    // ห่วงทองที่ปลอกคอด้านข้าง + โน้ตห้อยลงมาจากห่วงตรงๆ
+    const hang = surf(-0.12);                                 // จุดห้อยด้านข้างค่อนลงล่าง
+    const out = new THREE.Vector3(hang.x - C0.x, 0, hang.z - C0.z * 0.4).normalize();
     const gold = new THREE.MeshStandardMaterial({ color: 0xffcf5a, metalness: 1, roughness: 0.25 });
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.085, 0.022, 10, 24), gold);
-    ring.position.set(0.86, 0.66, 0.36); ring.rotation.set(0.2, 1.25, 0); body.add(ring);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.02, 10, 24), gold);
+    ring.position.copy(hang).addScaledVector(out, 0.07); ring.position.y -= 0.06;
+    ring.rotation.set(0, Math.atan2(out.x, out.z) + Math.PI / 2, 0);
+    body.add(ring);
     note = makeNote();
-    const holder = new THREE.Group(); holder.position.set(0.92, 0.66, 0.42); holder.rotation.set(0.05, 0.85, -0.06); body.add(holder);
-    const string = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.16, 8), new THREE.MeshStandardMaterial({ color: COL.red, roughness: 0.5 }));
-    string.position.set(0, -0.06, 0.02); holder.add(string);
-    const anchor = new THREE.Object3D(); anchor.scale.setScalar(0.36); anchor.position.set(0, -0.1 - 0.36, 0.04);
+    const holder = new THREE.Group();
+    holder.position.copy(ring.position); holder.position.y -= 0.075;
+    holder.rotation.set(0.08, Math.atan2(out.x, out.z), 0);   // หันหน้ากระดาษออกนอกตัว
+    body.add(holder);
+    const S0 = 0.3;
+    const anchor = new THREE.Object3D(); anchor.scale.setScalar(S0); anchor.position.set(0, -0.012, 0.03);   // โน้ตที่พับอยู่: ขอบบนอยู่ที่จุดกึ่งกลางกระดาษ จึงห้อยชิดห่วงพอดี
     holder.add(anchor); anchor.add(note);
     note.userData.anchor = anchor;
     setNoteOpen(note, 0);
@@ -177,6 +206,36 @@ export function makeFox({ collar = true } = {}) {
     pickBody: [], pickNote: note ? note.userData.meshes : [] };
   body.traverse((o) => { if (o.isMesh && !(note && isChild(o, note))) root.userData.pickBody.push(o); });
   return root;
+}
+/* ท่อฟูชิ้นเดียว: รัศมีเปลี่ยนตามความยาว (ใช้ทำหางนุ่มๆ) ปลายปิดมน */
+function fluffyTube(curve, radius, segs = 90, rad = 28) {
+  const frames = curve.computeFrenetFrames(segs, false);
+  const pos = [], uv = [], idx = [];
+  for (let i = 0; i <= segs; i++) {
+    const u = i / segs, p = curve.getPointAt(u), r = Math.max(0.0001, radius(u));
+    const N = frames.normals[i], B = frames.binormals[i];
+    for (let j = 0; j <= rad; j++) {
+      const a = (j / rad) * Math.PI * 2;
+      pos.push(p.x + r * (Math.cos(a) * N.x + Math.sin(a) * B.x), p.y + r * (Math.cos(a) * N.y + Math.sin(a) * B.y), p.z + r * (Math.cos(a) * N.z + Math.sin(a) * B.z));
+      uv.push(j / rad * 2, u * 4);
+    }
+  }
+  for (let i = 0; i < segs; i++) for (let j = 0; j < rad; j++) {
+    const a = i * (rad + 1) + j, b = a + rad + 1;
+    idx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  // ปิดปลายสองข้างด้วยจุดกลาง
+  const cap = (i, flip) => {
+    const p = curve.getPointAt(i / segs), c = pos.length / 3;
+    pos.push(p.x, p.y, p.z); uv.push(0.5, 0.5);
+    for (let j = 0; j < rad; j++) { const a = i * (rad + 1) + j; flip ? idx.push(c, a + 1, a) : idx.push(c, a, a + 1); }
+  };
+  cap(0, false); cap(segs, true);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
 }
 function isChild(o, p) { for (let q = o; q; q = q.parent) if (q === p) return true; return false; }
 

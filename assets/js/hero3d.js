@@ -203,6 +203,7 @@ function start() {
   const fox = makeFox();
   const note = fox.userData.note, noteAnchor = note.userData.anchor;
   scene.add(fox); scene.attach(note);
+  note.userData.meshes.forEach((m) => { m.material.transparent = true; });  // ให้วาดรอบเดียวกับปกการ์ตูน จะได้จัดลำดับให้โน้ตอยู่หน้าสุดได้
   const noteGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(), color: 0xff8fc8, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
   scene.add(noteGlow);
   let world = document.documentElement.dataset.world === "fox" ? "fox" : "case";
@@ -312,7 +313,9 @@ function start() {
       spinVel = dx * 0.006; spin += spinVel;
     }
   });
-  const release = () => {
+  const release = (e) => {
+    // จอสัมผัส: ปล่อยนิ้วแล้วให้ฉากกลับตรง (ไม่ค้างเอียงตามจุดที่แตะล่าสุด)
+    if (e && e.pointerType !== "mouse") setTimeout(() => { pointer.set(9, 9); look.tx = look.ty = 0; }, 60);
     if (!dragging) return;
     dragging = false;
     if (moved < 7) {
@@ -392,7 +395,7 @@ function start() {
       // โน้ต: ลอยออกจากปลอกคอไปกลางจอ แล้วค่อยๆ คลี่เปิดจากล่างขึ้นบน
       const noteK = smooth(open / 0.45), unfold = smooth((open - 0.3) / 0.35);
       noteAnchor.getWorldPosition(homePos); noteAnchor.getWorldQuaternion(homeQuat); noteAnchor.getWorldScale(homeScl);
-      tmpE.set(-look.y * 0.25 + 0.05, look.x * 0.35 + Math.sin(t * 0.8) * 0.12 * sp, Math.sin(t * 1.1) * 0.04 * sp);
+      tmpE.set(-look.y * 0.08 + 0.03, look.x * 0.1 + Math.sin(t * 0.8) * 0.06 * sp, Math.sin(t * 1.1) * 0.025 * sp);
       floatQuat.setFromEuler(tmpE);
       note.position.lerpVectors(homePos, tmpV.set(0, (narrow ? 1.0 : 0.62) + Math.sin(t * 1.2) * 0.08 * sp, narrow ? 3.4 : 3.0), noteK);
       note.quaternion.slerpQuaternions(homeQuat, floatQuat, noteK);
