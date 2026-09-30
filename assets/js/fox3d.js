@@ -123,13 +123,22 @@ export function makeFox({ collar = true } = {}) {
   const leg = new THREE.CapsuleGeometry(0.2, 0.62, 10, 20);
   body.add(part(leg, brown, [0.46, 0.24, 1.18], [1.05, 1, 0.95], [Math.PI / 2 - 0.08, 0, -0.12]));
   body.add(part(leg, brown, [-0.46, 0.24, 1.18], [1.05, 1, 0.95], [Math.PI / 2 - 0.08, 0, 0.12]));
-  // หางฟูชิ้นเดียว: โคนเล็ก ป่องกลาง ปลายมน โค้งอ้อมมาข้างลำตัว
-  const tail = new THREE.Group(); tail.position.set(0, 0.6, -1.62); body.add(tail);
+  // หางฟูชิ้นเดียวทรงตัว S: โคนเล็ก ป่องกลาง ปลายแหลมงอนขึ้น สีส้ม ปลายขาวครีมขอบหยักฟู
+  // วางให้งอกออกจากก้นแล้วโค้งออกไปด้านหลัง-ด้านข้าง ไม่จมเข้าไปในลำตัวหรือขา
+  const tail = new THREE.Group(); tail.position.set(0, 0.52, -1.9); body.add(tail);
   const tailCurve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0.05, 0.05, 0.1), new THREE.Vector3(-0.45, -0.05, -0.28), new THREE.Vector3(-1.05, -0.14, -0.22),
-    new THREE.Vector3(-1.5, -0.2, 0.25), new THREE.Vector3(-1.66, -0.24, 0.8), new THREE.Vector3(-1.62, -0.26, 1.2),
+    new THREE.Vector3(0, 0.02, 0.12), new THREE.Vector3(-0.12, -0.06, -0.42), new THREE.Vector3(-0.62, -0.13, -0.92),
+    new THREE.Vector3(-1.28, -0.16, -0.96), new THREE.Vector3(-1.72, -0.08, -0.55), new THREE.Vector3(-1.9, 0.12, -0.08), new THREE.Vector3(-1.86, 0.38, 0.28),
   ]);
-  tail.add(part(fluffyTube(tailCurve, (u) => 0.6 * Math.pow(Math.sin(Math.PI * Math.min(1, 0.06 + u * 0.97)), 0.55) * (0.55 + 0.45 * Math.sin(Math.PI * Math.min(1, u * 1.3)))), brown, [0, 0.04, 0], [1, 0.82, 1]));
+  const TAIL_ORANGE = new THREE.Color(0xd9731f), TAIL_CREAM = new THREE.Color(0xfbf2c8);
+  const tailMat = plush(0xffffff, 0xffe2b8); tailMat.vertexColors = true;
+  tail.add(part(fluffyTube(tailCurve,
+    (u) => 0.47 * Math.pow(Math.sin(Math.PI * (0.07 + 0.93 * u)), 0.72),
+    (u, a) => {   // ปลายขาวครีม ขอบหยักมนๆ แบบขนฟู (ไล่สีนุ่มๆ ไม่เป็นขั้นบันได)
+      const edge = 0.7 + 0.03 * Math.abs(Math.sin(a * 2.5)) + 0.012 * Math.sin(a * 9);
+      const k = Math.min(1, Math.max(0, (u - edge + 0.012) / 0.024));
+      return TAIL_ORANGE.clone().lerp(TAIL_CREAM, k * k * (3 - 2 * k));
+    }, 170, 56), tailMat, [0, 0, 0], [0.88, 0.72, 0.88]));
   // หัวโต
   const head = new THREE.Group(); head.position.set(0, 1.02, 1.0); body.add(head);
   head.add(part(S, orange, [0, 0, 0], [1.0, 0.84, 0.88]));
@@ -208,9 +217,9 @@ export function makeFox({ collar = true } = {}) {
   return root;
 }
 /* ท่อฟูชิ้นเดียว: รัศมีเปลี่ยนตามความยาว (ใช้ทำหางนุ่มๆ) ปลายปิดมน */
-function fluffyTube(curve, radius, segs = 90, rad = 28) {
+function fluffyTube(curve, radius, colorFn = null, segs = 90, rad = 28) {
   const frames = curve.computeFrenetFrames(segs, false);
-  const pos = [], uv = [], idx = [];
+  const pos = [], uv = [], idx = [], col = [];
   for (let i = 0; i <= segs; i++) {
     const u = i / segs, p = curve.getPointAt(u), r = Math.max(0.0001, radius(u));
     const N = frames.normals[i], B = frames.binormals[i];
@@ -218,6 +227,7 @@ function fluffyTube(curve, radius, segs = 90, rad = 28) {
       const a = (j / rad) * Math.PI * 2;
       pos.push(p.x + r * (Math.cos(a) * N.x + Math.sin(a) * B.x), p.y + r * (Math.cos(a) * N.y + Math.sin(a) * B.y), p.z + r * (Math.cos(a) * N.z + Math.sin(a) * B.z));
       uv.push(j / rad * 2, u * 4);
+      if (colorFn) { const c = colorFn(u, a); col.push(c.r, c.g, c.b); }
     }
   }
   for (let i = 0; i < segs; i++) for (let j = 0; j < rad; j++) {
@@ -228,12 +238,14 @@ function fluffyTube(curve, radius, segs = 90, rad = 28) {
   const cap = (i, flip) => {
     const p = curve.getPointAt(i / segs), c = pos.length / 3;
     pos.push(p.x, p.y, p.z); uv.push(0.5, 0.5);
+    if (colorFn) { const c = colorFn(i / segs, 0); col.push(c.r, c.g, c.b); }
     for (let j = 0; j < rad; j++) { const a = i * (rad + 1) + j; flip ? idx.push(c, a + 1, a) : idx.push(c, a, a + 1); }
   };
   cap(0, false); cap(segs, true);
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  if (colorFn) g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
   g.setIndex(idx); g.computeVertexNormals();
   return g;
 }
