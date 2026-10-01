@@ -2,6 +2,7 @@
 // ลากเพื่อหมุนดูรอบตัว 360° · ปัดแรงๆ (หรือหมุนต่อเนื่อง 2-3 รอบ) เพื่อเปลี่ยนชุด → หมุนเร็ว + ฝุ่นฟุ้ง → เปลี่ยนชุด + ออร่า 3 วินาที
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { drawText } from "./canvastext.js";
 
 const wrap = document.getElementById("standee-stage");
 const canvas = document.getElementById("standee3d");
@@ -53,8 +54,8 @@ function baseTexture(ch) {
   for (let i = 0; i < 18; i++) { x.beginPath(); x.arc(40 + i * 28, 40 + (i % 3) * 70, 6 + (i % 4) * 3, 0, TAU); x.fill(); }
   x.fillStyle = "#fff"; x.textAlign = "center"; x.textBaseline = "middle";
   x.fillStyle = "rgba(10,20,50,.5)"; x.fillRect(196, 104, 120, 18);
-  x.font = `800 50px Inter, ${FONT}`; x.fillStyle = "#fff"; x.fillText(ch.en, 256, 176);
-  x.font = `700 34px ${FONT}`; x.fillStyle = "rgba(255,255,255,.88)"; x.fillText(ch.th, 256, 224);
+  drawText(x, ch.en, 256, 176, { font: `800 50px Inter, ${FONT}`, color: "#fff", maxW: 440 });
+  drawText(x, ch.th, 256, 224, { font: `700 34px ${FONT}`, color: "rgba(255,255,255,.88)", maxW: 440 });
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   return t;
 }

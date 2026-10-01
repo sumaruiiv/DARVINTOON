@@ -1,6 +1,7 @@
 // ตุ๊กตาหมาจิ้งจอกนอนหมอบ 3 มิติ (ขนนุ่มสีส้ม แก้มขาว ขา/หางสีน้ำตาลเข้ม) + ปลอกคอสีแดงกับกระดาษโน้ตพับ
 // ใช้ร่วมกันทั้งฉากหน้าแรก (แทนกระเป๋าดินสอ), ตุ๊กตาท้ายเว็บ และแอนิเมชันกระโดดชนจอ
 import * as THREE from "three";
+import { drawText } from "./canvastext.js";
 
 const COL = { orange: 0xf2781c, orangeLight: 0xff9a3d, white: 0xfbf4ea, brown: 0x5b3322, dark: 0x1a1210, red: 0xd9262e };
 
@@ -37,28 +38,23 @@ function noteTextures() {
     for (let y = 150; y < H - 60; y += 70) { x.beginPath(); x.moveTo(50, y); x.lineTo(W - 50, y); x.stroke(); }
     x.strokeStyle = "rgba(230,90,110,.35)"; x.beginPath(); x.moveTo(110, 30); x.lineTo(110, H - 30); x.stroke();
     x.fillStyle = "rgba(0,0,0,.08)"; x.fillRect(0, H / 2 - 2, W, 4); // รอยพับ
-    x.textAlign = "center"; x.textBaseline = "middle";
-    x.fillStyle = "#e0457f";
-    x.font = `120px Itim, "Noto Sans Thai", sans-serif`;
-    x.fillText("เราชอบเธอนะ", W / 2 + 20, H / 2 - 110);
+    drawText(x, "เราชอบเธอนะ", W / 2 + 25, H / 2 - 110, { font: `120px Itim, "Noto Sans Thai", sans-serif`, color: "#e0457f", maxW: W - 220 });
     heart(x, W / 2 + 20, H / 2 + 90, 70, "#ff5b93");
-    x.textAlign = "left"; x.fillStyle = "#3a5da8";
-    x.font = `44px Itim, "Noto Sans Thai", sans-serif`;
-    x.fillText("จากดาวิน", 130, H - 70);
+    drawText(x, "จากดาวิน", 130, H - 70, { font: `44px Itim, "Noto Sans Thai", sans-serif`, color: "#3a5da8", align: "left", maxW: 400 });
     t.needsUpdate = true;
   };
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
   draw();
-  if (document.fonts) document.fonts.load('120px Itim').then(draw).catch(() => {});
+  if (document.fonts) document.fonts.load('120px Itim', 'เราชอบเธอนะ จากดาวิน').then(draw).catch(() => {});
   // ด้านหลัง (เห็นตอนพับอยู่): สติกเกอร์หัวใจ
   const b = document.createElement("canvas"); b.width = 400; b.height = 250;
   const y = b.getContext("2d");
   y.fillStyle = "#fff6ea"; y.fillRect(0, 0, 400, 250);
   y.strokeStyle = "#ff8fb8"; y.lineWidth = 14; y.strokeRect(7, 7, 386, 236);
   heart(y, 200, 112, 118, "#ff5b93");
-  y.fillStyle = "#3a5da8"; y.textAlign = "center"; y.font = `36px Itim, "Noto Sans Thai", sans-serif`; y.fillText("แตะเปิดดูสิ", 200, 212);
+  drawText(y, "แตะเปิดดูสิ", 200, 212, { font: `36px Itim, "Noto Sans Thai", sans-serif`, color: "#3a5da8", maxW: 340 });
   const bt = new THREE.CanvasTexture(b); bt.colorSpace = THREE.SRGBColorSpace;
-  if (document.fonts) document.fonts.load('36px Itim').then(() => { y.fillStyle = "#fff6ea"; y.fillRect(20, 190, 360, 45); y.fillStyle = "#3a5da8"; y.fillText("แตะเปิดดูสิ", 200, 212); bt.needsUpdate = true; }).catch(() => {});
+  if (document.fonts) document.fonts.load('36px Itim', 'แตะเปิดดูสิ').then(() => { y.fillStyle = "#fff6ea"; y.fillRect(20, 190, 360, 45); drawText(y, "แตะเปิดดูสิ", 200, 212, { font: `36px Itim, "Noto Sans Thai", sans-serif`, color: "#3a5da8", maxW: 340 }); bt.needsUpdate = true; }).catch(() => {});
   return { front: t, back: bt };
 }
 function heart(x, cx, cy, s, col) {

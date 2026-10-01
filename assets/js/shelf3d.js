@@ -6,6 +6,7 @@ import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.j
 import { EPISODES } from "./data.js";
 import { makePencil } from "./pencil3d.js";
 import { go } from "./common.js";
+import { drawText } from "./canvastext.js";
 
 const wrap = document.getElementById("shelf-stage");
 const canvas = document.getElementById("shelf3d");
@@ -23,7 +24,12 @@ const lerp = (a, b, k) => a + (b - a) * k;
 
 if (wrap) {
   const safeStart = () => { try { start(); } catch (err) { console.warn("shelf 3D disabled:", err); wrap.classList.add("no-webgl"); } };
-  (document.fonts?.ready || Promise.resolve()).then(safeStart, safeStart);
+  // โหลดฟอนต์ส่วนอักษรไทยให้ครบก่อนวาดชื่อตอนลงสันหนังสือ (รอไม่เกิน 3 วินาที)
+  const thai = EPISODES.map((e) => e.title + e.hook).join("") + "ตอนที่";
+  const fontsReady = document.fonts
+    ? Promise.all(["500 24px", "600 15px", "700 44px", "800 50px"].map((w) => document.fonts.load(`${w} "Noto Sans Thai"`, thai))).then(() => document.fonts.ready)
+    : Promise.resolve();
+  Promise.race([fontsReady, new Promise((r) => setTimeout(r, 3000))]).then(safeStart, safeStart);
 }
 
 /* ---------- ลายไม้ ---------- */
@@ -50,10 +56,6 @@ function woodTexture(dark = false) {
 }
 
 /* ---------- ปก/สันหนังสือ ---------- */
-function fitText(x, text, max, size, weight = 700) {
-  let s = size;
-  do { x.font = `${weight} ${s}px ${FONT}`; s -= 2; } while (x.measureText(text).width > max && s > 10);
-}
 function spineTexture(ep, color) {
   const c = document.createElement("canvas"); c.width = 128; c.height = 512;
   const x = c.getContext("2d");
@@ -62,12 +64,11 @@ function spineTexture(ep, color) {
   x.fillStyle = g; x.fillRect(0, 0, 128, 512);
   x.fillStyle = "rgba(255,255,255,.85)";
   x.fillRect(0, 34, 128, 5); x.fillRect(0, 44, 128, 2); x.fillRect(0, 468, 128, 2); x.fillRect(0, 474, 128, 5);
-  x.textAlign = "center"; x.textBaseline = "middle"; x.fillStyle = "#fff";
-  x.font = `800 30px ${FONT}`; x.fillText(`${ep.n}`, 64, 82);
+  drawText(x, `${ep.n}`, 64, 82, { font: `800 30px ${FONT}`, color: "#fff" });
   x.save(); x.translate(64, 272); x.rotate(Math.PI / 2);
-  fitText(x, ep.title, 330, 44, 700); x.fillText(ep.title, 0, 2);
+  drawText(x, ep.title, 0, 2, { font: `700 44px ${FONT}`, color: "#fff", maxW: 330, maxH: 100 });
   x.restore();
-  x.font = `600 15px ${FONT}`; x.fillStyle = "rgba(255,255,255,.8)"; x.fillText("ตอนที่", 64, 60);
+  drawText(x, "ตอนที่", 64, 60, { font: `600 15px ${FONT}`, color: "rgba(255,255,255,.8)", maxW: 110 });
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   return t;
 }
@@ -79,8 +80,7 @@ function coverTexture(ep, color) {
     const g = x.createLinearGradient(0, 0, 0, 700);
     g.addColorStop(0, shade(color, 20)); g.addColorStop(1, "#061433");
     x.fillStyle = g; x.fillRect(0, 0, 512, 700);
-    x.fillStyle = "rgba(255,255,255,.9)"; x.textAlign = "center"; x.textBaseline = "middle";
-    x.font = `700 26px ${FONT}`; x.fillText(`ตอนที่ ${ep.n} · ${ep.month}`, 256, 60);
+    drawText(x, `ตอนที่ ${ep.n} · ${ep.month}`, 256, 60, { font: `700 26px ${FONT}`, color: "rgba(255,255,255,.9)", maxW: 450 });
     if (img) {
       const bw = 440, bh = 330, bx = 36, by = 100;
       x.save(); roundRect(x, bx, by, bw, bh, 18); x.clip();
@@ -89,9 +89,9 @@ function coverTexture(ep, color) {
       x.restore();
       x.strokeStyle = "rgba(255,255,255,.85)"; x.lineWidth = 4; roundRect(x, bx, by, bw, bh, 18); x.stroke();
     }
-    x.fillStyle = "#fff"; fitText(x, ep.title, 440, 50, 800); x.fillText(ep.title, 256, 490);
-    x.fillStyle = "#9fd6ff"; fitText(x, ep.hook, 450, 24, 500); x.fillText(ep.hook, 256, 548);
-    x.fillStyle = "rgba(255,255,255,.65)"; x.font = `700 20px Inter, ${FONT}`; x.fillText("DARVIN-CHERCI", 256, 650);
+    drawText(x, ep.title, 256, 490, { font: `800 50px ${FONT}`, color: "#fff", maxW: 440 });
+    drawText(x, ep.hook, 256, 548, { font: `500 24px ${FONT}`, color: "#9fd6ff", maxW: 450 });
+    drawText(x, "DARVIN-CHERCI", 256, 650, { font: `700 20px Inter, ${FONT}`, color: "rgba(255,255,255,.65)" });
     t.needsUpdate = true;
   };
   draw(null);
