@@ -47,7 +47,7 @@ export function makePhoneModel(owner) {
   const frameM = new THREE.MeshPhysicalMaterial({ color: davin ? 0x2c4c8e : 0x303136, roughness: 0.3, metalness: 0.4, clearcoat: 0.6 });
   g.add(new THREE.Mesh(slab(w, d, h, 0.095, 0.014), frameM));
   const backPanel = new THREE.Mesh(flatDown(w - 0.03, d - 0.03, 0.085), shell); backPanel.position.y = -0.0008; g.add(backPanel);
-  const glass = new THREE.Mesh(flatUp(w - 0.03, d - 0.03, 0.085), new THREE.MeshPhysicalMaterial({ color: 0x050608, roughness: 0.4, metalness: 0, clearcoat: 0.25, clearcoatRoughness: 0.3, envMapIntensity: 0.08 })); glass.position.y = h + 0.0006; g.add(glass);
+  const glass = new THREE.Mesh(flatUp(w - 0.03, d - 0.03, 0.085), new THREE.MeshStandardMaterial({ color: 0x040507, roughness: 0.32, metalness: 0, envMapIntensity: 0.03 })); glass.position.y = h + 0.0006; g.add(glass);
   const lock = new THREE.Mesh(flatUp(w - 0.075, d - 0.075, 0.065), new THREE.MeshBasicMaterial({ map: null, transparent: true, opacity: 0, toneMapped: false, depthWrite: false }));
   lock.position.y = h + 0.0014; lock.userData.screen = true; g.add(lock);
   const camF = new THREE.Mesh(new THREE.CircleGeometry(0.018, 16), new THREE.MeshBasicMaterial({ color: 0x000000 })); camF.rotation.x = -Math.PI / 2; camF.position.set(0, h + 0.0018, -d / 2 + 0.07); g.add(camF);
@@ -204,32 +204,64 @@ export function makeCalculator() {
   };
 }
 
-/* ================= หูฟังมีสาย + กระเป๋าหนังสีดำ (ของริว) ================= */
-const black = () => new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.55 });
-function makeWiredBud() {
-  const b = new THREE.Group();
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.062, 24, 16), new THREE.MeshPhysicalMaterial({ color: 0x18181b, roughness: 0.3, clearcoat: 0.7 })); head.scale.set(1, 0.85, 1); b.add(head);
-  const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.038, 0.05, 18), new THREE.MeshStandardMaterial({ color: 0x2a2a30, roughness: 0.8 })); tip.rotation.x = Math.PI / 2; tip.position.z = -0.06; b.add(tip);
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.02, 0.09, 12), black()); stem.rotation.x = Math.PI / 2; stem.position.z = 0.08; b.add(stem);
+/* ================= หูฟังมีสายสีดำของริว (ทรงเดียวกับหูฟังเอียร์พอดแบบมีสาย) + กระเป๋าหนังสีดำ ================= */
+const blackGloss = () => new THREE.MeshPhysicalMaterial({ color: 0x17171a, roughness: 0.38, clearcoat: 0.45, clearcoatRoughness: 0.35 });
+const onSurface = (mesh, dir, radii) => {   // วางแผ่นเล็กๆ แนบผิวทรงรี แล้วหันออกตามทิศ dir
+  const d = dir.clone().normalize();
+  const k = 1 / Math.sqrt((d.x / radii.x) ** 2 + (d.y / radii.y) ** 2 + (d.z / radii.z) ** 2);
+  mesh.position.copy(d).multiplyScalar(k * 1.004);
+  mesh.lookAt(mesh.position.clone().add(d));
+  return mesh;
+};
+// นอนราบ: ก้านชี้ไปทาง +z ช่องลำโพงหันขึ้นและเอียงเข้าด้านใน (side: -1 = ซ้าย, 1 = ขวา)
+function makeEarPod(side) {
+  const b = new THREE.Group(), m = blackGloss();
+  // หัวทรงหยดน้ำมน ด้านบนมีหน้าลำโพงทรงรีแบนๆ ขนาดใหญ่ (เหมือนหูฟังเอียร์พอด) + ช่องระบายลมเล็กๆ
+  const radii = new THREE.Vector3(0.062, 0.05, 0.072);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(1, 40, 28), m); head.scale.copy(radii); b.add(head);
+  const dir = new THREE.Vector3(-side * 0.62, 0.74, 0.12).normalize();
+  const face = new THREE.Group(); face.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+  face.position.copy(dir).multiplyScalar(0.047); b.add(face);
+  const rim = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.06, 1, 40), m); rim.scale.set(0.044, 0.008, 0.034); face.add(rim);
+  const mesh = new THREE.Mesh(new THREE.CircleGeometry(1, 40), new THREE.MeshStandardMaterial({ color: 0x34343a, roughness: 0.95 }));
+  mesh.scale.set(0.036, 0.027, 1); mesh.rotation.x = -Math.PI / 2; mesh.position.y = 0.0042; face.add(mesh);
+  const vent = new THREE.Mesh(new THREE.CircleGeometry(1, 20), new THREE.MeshStandardMaterial({ color: 0x3c3c43, roughness: 0.95 }));
+  vent.scale.set(0.016, 0.005, 1); b.add(onSurface(vent, new THREE.Vector3(side * 0.6, 0.35, -0.7), radii));
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.0165, 0.02, 0.17, 20), m); stem.rotation.x = Math.PI / 2; stem.position.set(0, -0.012, 0.12); b.add(stem);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.0165, 0.03, 16), m); cap.rotation.x = Math.PI / 2; cap.position.set(0, -0.012, 0.218); b.add(cap);
+  b.userData.tail = new THREE.Vector3(0, -0.012, 0.232);
   return b;
 }
+// หัวเสียบ Type-C ทรงกระบอก: ปลายโลหะอยู่ทาง -z สายออกทาง +z
 function makePlug() {
-  const p = new THREE.Group();
-  const housing = new THREE.Mesh(new RoundedBoxGeometry(0.06, 0.036, 0.12, 2, 0.012), black()); p.add(housing);
-  const metal = new THREE.Mesh(new RoundedBoxGeometry(0.034, 0.014, 0.05, 2, 0.006), new THREE.MeshStandardMaterial({ color: 0xd9dde3, metalness: 1, roughness: 0.25 })); metal.position.z = -0.08; p.add(metal);
+  const p = new THREE.Group(), m = blackGloss();
+  const housing = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.026, 0.12, 22), m); housing.rotation.x = Math.PI / 2; p.add(housing);
+  const relief = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.018, 0.04, 14), m); relief.rotation.x = Math.PI / 2; relief.position.z = 0.08; p.add(relief);
+  const tip = new THREE.Mesh(new RoundedBoxGeometry(0.034, 0.014, 0.05, 2, 0.006), new THREE.MeshStandardMaterial({ color: 0xd9dde3, metalness: 1, roughness: 0.25 })); tip.position.z = -0.085; p.add(tip);
   return p;
 }
+function makeRemote() {
+  const r = new THREE.Group(), m = blackGloss();
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.017, 0.09, 6, 16), m); body.rotation.x = Math.PI / 2; r.add(body);
+  const mark = new THREE.MeshBasicMaterial({ color: 0x8a8a92 });
+  const plus1 = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.002, 0.003), mark), plus2 = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.002, 0.012), mark), minus = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.002, 0.003), mark);
+  plus1.position.set(0, 0.0175, -0.035); plus2.position.set(0, 0.0175, -0.035); minus.position.set(0, 0.0175, 0.035);
+  r.add(plus1, plus2, minus);
+  return r;
+}
 // เส้นสายหูฟัง: สร้างท่อใหม่ตามจุดที่ส่งมา (ใช้ตอนกำลังเคลื่อนไหว)
-export function cableMesh(mat) {
+export function cableMesh(mat, radius = 0.0105) {
   const m = new THREE.Mesh(new THREE.BufferGeometry(), mat);
-  m.setPath = (pts) => {
-    const curve = new THREE.CatmullRomCurve3(pts);
+  m.setPath = (pts, seg) => {
+    const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
     m.geometry.dispose();
-    m.geometry = new THREE.TubeGeometry(curve, Math.max(16, pts.length * 10), 0.011, 6, false);
+    m.geometry = new THREE.TubeGeometry(curve, seg || Math.max(24, pts.length * 4), radius, 8, false);
+    m.curve = curve;
   };
   return m;
 }
-export function makePouch() {
+const resample = (pts, n) => new THREE.CatmullRomCurve3(pts, false, "centripetal").getSpacedPoints(n - 1);
+export function makePouch(phoneX) {
   const W = 0.95, D = 0.95, H = 0.16, g = new THREE.Group();
   const leather = new THREE.MeshStandardMaterial({ color: 0x151517, roughness: 0.55, envMapIntensity: 0.35 });
   g.add(new THREE.Mesh(slab(W, D, H, 0.16, 0.04), leather));
@@ -248,39 +280,116 @@ export function makePouch() {
   const snapHit = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.08, 16), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false }));
   snapHit.position.copy(snap.position); snapHit.userData.noShadow = true; flapPivot.add(snapHit);
   tag(snap, "snap"); tag(snapHit, "snap");
-  // หูฟัง (ซ่อนอยู่ในกระเป๋าจนกว่าจะดึงออกมา)
-  const budL = makeWiredBud(), budR = makeWiredBud(), plug = makePlug(), split = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.05, 12), black());
-  const cableM = new THREE.MeshStandardMaterial({ color: 0x111113, roughness: 0.6 });
+
+  // หูฟัง: ตอนเก็บอยู่ในกระเป๋า → ดึงออกมา (สายม้วนเป็นขดเรียบร้อย) → เสียบโทรศัพท์ (สายวิ่งอ้อมกระเป๋าไปเข้าช่องด้านล่างโทรศัพท์ ไม่พาดทับเครื่อง)
+  const budL = makeEarPod(-1), budR = makeEarPod(1), plug = makePlug(), remote = makeRemote();
+  const split = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.017, 0.045, 14), blackGloss()); split.rotation.x = Math.PI / 2;
+  const cableM = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.5 });
   const cL = cableMesh(cableM), cR = cableMesh(cableM), cM = cableMesh(cableM);
-  const ear = new THREE.Group(); ear.add(budL, budR, plug, split, cL, cR, cM); g.add(ear);
+  const ear = new THREE.Group(); ear.add(budL, budR, plug, remote, split, cL, cR, cM); g.add(ear);
   tag(ear, "ear");
-  return { g, W, D, H, flapPivot, snapM, budL, budR, plug, split, cables: [cL, cR, cM] };
+
+  const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+  const N = 72;
+  const OUT = { L: V3(-0.2, 0.062, -1.0), R: V3(0.2, 0.062, -1.0), rl: 0.18, rr: -0.18, S: V3(0.04, 0.022, -0.6) };
+  // ขดสาย 3 รอบซ้อนกันทีละชั้น (ไม่ทะลุกันเอง)
+  const coilC = V3(0.43, 0, -0.8), coilR = 0.105, turns = 3, pitch = 0.024;
+  const a0 = Math.atan2(OUT.S.z - coilC.z, OUT.S.x - coilC.x);
+  const coil = [];
+  for (let i = 0; i <= 54; i++) { const t = i / 54, a = a0 + t * turns * Math.PI * 2; coil.push(V3(coilC.x + Math.cos(a) * coilR, 0.0125 + t * turns * pitch, coilC.z + Math.sin(a) * coilR)); }
+  const T_OUT = V3(0.7, 0.026, -0.7), D_OUT = V3(0.15, 0, 1).normalize();
+  const mainOut = resample([OUT.S, V3(0.2, 0.014, -0.7), ...coil, V3(0.55, 0.1, -0.74), T_OUT], N);
+  const port = V3(phoneX, 0.041, 0.82);
+  const T_IN = V3(phoneX, 0.041, 0.80 + 0.11 + 0.1), D_IN = V3(0, 0, -1);
+  const mainIn = resample([OUT.S, V3(0.35, 0.02, -0.62), V3(0.64, 0.02, -0.52), V3(0.66, 0.02, 0.1), V3(0.68, 0.02, 0.85), V3(0.86, 0.02, 1.16), V3(phoneX - 0.05, 0.03, 1.2), V3(phoneX, 0.04, 1.11), T_IN], N);
+  const inside = (p) => V3(p.x * 0.45, Math.min(0.11, Math.max(0.04, p.y + 0.03)), p.z * 0.22 + 0.04);
+  const mainHide = mainOut.map(inside);
+  const tmp = new THREE.Vector3(), q = new THREE.Quaternion(), FWD = V3(0, 0, -1);
+  let last = "";
+  function tailOf(b) { return b.userData.tail.clone().applyEuler(b.rotation).add(b.position); }
+  function setPose(pk, gk) {
+    const key = pk.toFixed(4) + "|" + gk.toFixed(4);
+    if (key === last) return; last = key;
+    const lift = (k) => 0.3 * Math.pow(Math.sin(Math.PI * k), 0.7);   // ระหว่างเสียบ/ถอด สายยกข้ามโทรศัพท์ ไม่ลากผ่านเครื่อง
+    budL.position.copy(inside(OUT.L)).lerp(OUT.L, pk); budL.rotation.set(0, OUT.rl, 0);
+    budR.position.copy(inside(OUT.R)).lerp(OUT.R, pk); budR.rotation.set(0, OUT.rr, 0);
+    const S = inside(OUT.S).lerp(OUT.S, pk);
+    split.position.copy(S);
+    const main = mainHide.map((p, i) => {
+      const v = p.clone().lerp(mainOut[i], pk).lerp(mainIn[i], gk);
+      const f = i / (N - 1);
+      v.y = Math.max(0.0125, v.y + lift(gk) * Math.max(Math.sin(Math.PI * f) ** 0.5, f ** 4));
+      return v;
+    });
+    main[0] = S.clone();
+    const T = inside(T_OUT).lerp(T_OUT, pk).lerp(T_IN, gk); T.y += lift(gk);
+    main[N - 1] = T.clone();
+    const D = D_OUT.clone().lerp(D_IN, gk).normalize();
+    plug.quaternion.setFromUnitVectors(FWD, D);
+    plug.position.copy(T).addScaledVector(D, 0.1);
+    cM.setPath(main, 220);
+    const tl = tailOf(budL), tr = tailOf(budR);
+    cL.setPath([tl, tl.clone().lerp(S, 0.5).add(V3(0.02, 0, 0.04)), S], 40);
+    cR.setPath([tr, tr.clone().lerp(S, 0.5).add(V3(0.0, 0, 0.03)), S], 40);
+    const rp = cR.curve.getPoint(0.45), rt = cR.curve.getTangent(0.45);
+    remote.position.copy(rp).add(V3(0, 0.004, 0)); q.setFromUnitVectors(V3(0, 0, 1), rt.normalize()); remote.quaternion.copy(q);
+    void tmp; void port;
+  }
+  return { g, W, D, H, flapPivot, snapM, ear, setPose };
 }
 
-/* ================= ปลอกหูฟังบลูทูธสีขาว + หูฟัง 2 ข้าง (ของดาวิน) ================= */
-function makeWhiteBud() {
+/* ================= ปลอกหูฟังบลูทูธสีขาว + หูฟัง 2 ข้าง (ทรงหูฟังไร้สายรุ่นมีจุกยาง) ของดาวิน ================= */
+function makeProBud(side) {
   const b = new THREE.Group();
-  const white = new THREE.MeshPhysicalMaterial({ color: 0xf8f8fa, roughness: 0.22, clearcoat: 1 });
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.07, 26, 18), white); head.scale.set(1, 0.9, 1.05); b.add(head);
-  const grille = new THREE.Mesh(new THREE.CircleGeometry(0.024, 18), new THREE.MeshStandardMaterial({ color: 0x1d1d22, roughness: 0.7 })); grille.rotation.x = -Math.PI / 2; grille.position.set(0, 0.0635, -0.01); b.add(grille);
-  const stem = new THREE.Mesh(new THREE.CapsuleGeometry(0.026, 0.19, 6, 14), white); stem.rotation.x = Math.PI / 2; stem.position.z = 0.15; b.add(stem);
-  const tipM = new THREE.Mesh(new THREE.CircleGeometry(0.02, 14), new THREE.MeshStandardMaterial({ color: 0xc9ccd2, metalness: 0.8, roughness: 0.3 })); tipM.position.z = 0.271; b.add(tipM);
+  const white = new THREE.MeshPhysicalMaterial({ color: 0xf9f9fb, roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.1 });
+  const radii = new THREE.Vector3(0.066, 0.06, 0.072);
+  const body = new THREE.Mesh(new THREE.SphereGeometry(1, 36, 24), white); body.scale.copy(radii); b.add(body);
+  // จุกยางซิลิโคน ยื่นออกมาด้านหน้าเอียงเข้าด้านใน
+  const dir = new THREE.Vector3(-side * 0.8, 0.42, 0.22).normalize();
+  const tipG = new THREE.Group(); tipG.position.copy(dir).multiplyScalar(0.05); tipG.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir); b.add(tipG);
+  const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.026, 0.035, 22), white); nozzle.position.y = 0.012; tipG.add(nozzle);
+  const silicone = new THREE.MeshStandardMaterial({ color: 0xdedee4, roughness: 0.75 });
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(0.043, 28, 18, 0, Math.PI * 2, 0, Math.PI * 0.6), silicone); dome.scale.y = 0.8; dome.position.y = 0.012; tipG.add(dome);
+  const hole = new THREE.Mesh(new THREE.CircleGeometry(0.011, 16), new THREE.MeshStandardMaterial({ color: 0x6a6a72, roughness: 0.9 })); hole.rotation.x = -Math.PI / 2; hole.position.y = 0.047; tipG.add(hole);
+  // ตะแกรงไมค์สีดำด้านบนและด้านข้าง
+  const meshM = new THREE.MeshStandardMaterial({ color: 0x232327, roughness: 0.85 });
+  const m1 = new THREE.Mesh(new THREE.CircleGeometry(1, 24), meshM); m1.scale.set(0.022, 0.014, 1); b.add(onSurface(m1, new THREE.Vector3(side * 0.35, 0.45, -0.82), radii));
+  const m2 = new THREE.Mesh(new THREE.CircleGeometry(1, 24), meshM); m2.scale.set(0.013, 0.009, 1); b.add(onSurface(m2, new THREE.Vector3(side * 0.85, 0.35, 0.2), radii));
+  // ก้านสั้นแบน ปลายมีหัวโลหะ
+  const stem = new THREE.Mesh(new THREE.CapsuleGeometry(0.021, 0.11, 6, 16), white); stem.rotation.x = Math.PI / 2; stem.scale.set(1.25, 1, 1); stem.position.set(0, -0.01, 0.105); b.add(stem);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.021, 0.012, 18), new THREE.MeshStandardMaterial({ color: 0xc9ccd3, metalness: 0.9, roughness: 0.25 })); cap.rotation.x = Math.PI / 2; cap.scale.set(1.25, 1, 1); cap.position.set(0, -0.01, 0.186); b.add(cap);
   return b;
 }
 export function makeBudsCase() {
-  const W = 0.72, D = 0.62, H = 0.28, seam = -0.12, g = new THREE.Group();
-  const white = new THREE.MeshPhysicalMaterial({ color: 0xf7f7f9, roughness: 0.24, clearcoat: 1, clearcoatRoughness: 0.12 });
+  const W = 0.8, D = 0.6, H = 0.25, seam = -0.11, g = new THREE.Group();
+  const white = new THREE.MeshPhysicalMaterial({ color: 0xf7f7f9, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.12 });
   const baseD = D / 2 - seam, lidD = seam + D / 2;
   const base = new THREE.Mesh(extrudeUp(rr4(W - 0.1, baseD - 0.05, 0.015, 0.015, 0.2, 0.2), H, 0.05, 14), white);
   base.position.z = seam + baseD / 2; g.add(base);
+  // ถาดด้านใน (เห็นตอนเปิดฝา) มีหลุมวางหูฟัง 2 หลุม + บานพับโลหะ
+  const tray = new THREE.Mesh(new THREE.PlaneGeometry(W - 0.14, H - 0.08), new THREE.MeshStandardMaterial({ color: 0xeeeef2, roughness: 0.5 }));
+  tray.rotation.y = Math.PI; tray.position.set(0, H / 2, seam - 0.0015); g.add(tray);
+  for (const sx of [-1, 1]) {
+    const cav = new THREE.Mesh(new THREE.CircleGeometry(1, 28), new THREE.MeshStandardMaterial({ color: 0xc4c4cc, roughness: 0.6 }));
+    cav.scale.set(0.085, 0.062, 1); cav.rotation.y = Math.PI; cav.position.set(sx * 0.15, H * 0.56, seam - 0.0025); cav.userData.noShadow = true; g.add(cav);
+  }
+  const hinge = new THREE.Mesh(new RoundedBoxGeometry(0.15, 0.05, 0.035, 2, 0.012), new THREE.MeshStandardMaterial({ color: 0xc9ccd3, metalness: 0.9, roughness: 0.3 }));
+  hinge.position.set(0, 0.045, seam - 0.012); g.add(hinge);
   const lidPivot = new THREE.Group(); lidPivot.position.set(0, 0.02, seam); g.add(lidPivot);
   const lid = new THREE.Mesh(extrudeUp(rr4(W - 0.1, lidD - 0.05, 0.12, 0.12, 0.015, 0.015), H, 0.05, 14), white);
   lid.position.set(0, -0.02, -lidD / 2); lidPivot.add(lid);
   const led = new THREE.Mesh(new THREE.CircleGeometry(0.012, 12), new THREE.MeshBasicMaterial({ color: 0x3bd16f, toneMapped: false })); led.rotation.x = -Math.PI / 2; led.position.set(0, H + 0.001, 0.02); g.add(led);
   const buds = new THREE.Group(); g.add(buds);
-  const bL = makeWhiteBud(), bR = makeWhiteBud(); buds.add(bL, bR);
+  const bL = makeProBud(-1), bR = makeProBud(1); buds.add(bL, bR);
   tag(buds, "buds"); tag(lid, "lid"); tag(base, "lid");
-  return { g, W, D, H, lidPivot, led, buds, bL, bR };
+  // ตำแหน่งหูฟัง: อยู่ในหลุม (หัวโผล่ตรงรอยต่อฝา ก้านจมอยู่ในตัวปลอก) → ดึงออกมาลอยเหนือปลอก
+  const setPose = (pk) => {
+    const L = (a, b) => a + (b - a) * pk;
+    bL.position.set(L(-0.15, -0.24), L(H * 0.56, 0.3), L(seam - 0.06, -0.72)); bL.rotation.set(L(0, -0.25), L(0, 0.35), 0);
+    bR.position.set(L(0.15, 0.24), L(H * 0.56, 0.3), L(seam - 0.06, -0.72)); bR.rotation.set(L(0, -0.25), L(0, -0.35), 0);
+  };
+  setPose(0);
+  return { g, W, D, H, lidPivot, led, buds, bL, bR, setPose };
 }
 
 /* ================= กุญแจบ้าน + พวงกุญแจชินนามอนโรล (ของดาวิน) ================= */
@@ -300,31 +409,39 @@ function makeKey(color) {
   return g;
 }
 export function makeCinnamoroll() {
-  // สร้างแบบนอนหงาย: หน้าหันขึ้น (+y) หัวชี้ไปทาง -z
+  // สร้างแบบนอนหงาย: หน้าหันขึ้น (+y) หัวชี้ไปทาง -z · ทุกส่วนกลมนูนเป็นก้อน (ไม่แบน)
   const g = new THREE.Group();
   const white = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.32, clearcoat: 0.6 });
   const blue = new THREE.MeshStandardMaterial({ color: 0x3f9ae6, roughness: 0.25 });
   const pink = new THREE.MeshStandardMaterial({ color: 0xf5a3be, roughness: 0.6 });
-  const S = new THREE.SphereGeometry(1, 32, 22);
+  const S = new THREE.SphereGeometry(1, 36, 26);
   const part = (geo, mat, p, s, r = [0, 0, 0]) => { const m = new THREE.Mesh(geo, mat); m.position.set(...p); m.scale.set(...s); m.rotation.set(...r); g.add(m); return m; };
-  part(S, white, [0, 0.08, -0.05], [0.17, 0.08, 0.14]);                                 // หัว
-  part(S, white, [0.29, 0.07, -0.07], [0.2, 0.034, 0.075], [0, -0.28, 0.06]);            // หูยาวแผ่ออกด้านข้าง ปลายห้อยลง
-  part(S, white, [-0.29, 0.07, -0.07], [0.2, 0.034, 0.075], [0, 0.28, -0.06]);
-  part(S, white, [0, 0.068, 0.12], [0.11, 0.068, 0.1]);                                  // ตัว
-  part(S, white, [0.085, 0.11, 0.1], [0.036, 0.03, 0.036]); part(S, white, [-0.085, 0.11, 0.1], [0.036, 0.03, 0.036]);   // แขน
-  part(S, white, [0.05, 0.045, 0.2], [0.045, 0.036, 0.042]); part(S, white, [-0.05, 0.045, 0.2], [0.045, 0.036, 0.042]); // เท้า
-  part(new THREE.TorusGeometry(0.035, 0.014, 10, 20), white, [0.1, 0.03, 0.17], [1, 1, 1], [Math.PI / 2, 0, 0]);      // หางม้วน
-  part(S, blue, [0.065, 0.152, -0.045], [0.022, 0.012, 0.03]); part(S, blue, [-0.065, 0.152, -0.045], [0.022, 0.012, 0.03]); // ตา
-  const cheek = new THREE.CircleGeometry(1, 20);
-  const ch1 = part(cheek, pink, [0.112, 0.14, 0.0], [0.03, 0.022, 1], [-Math.PI / 2 + 0.2, 0, 0.5]);
-  const ch2 = part(cheek, pink, [-0.112, 0.14, 0.0], [0.03, 0.022, 1], [-Math.PI / 2 + 0.2, 0, -0.5]);
-  ch1.userData.noShadow = ch2.userData.noShadow = true;
+  const HY = 0.135, HR = new THREE.Vector3(0.17, 0.13, 0.15);
+  part(S, white, [0, HY, -0.05], [HR.x, HR.y, HR.z]);                                      // หัวกลมโต
+  part(S, white, [0.3, 0.13, -0.08], [0.2, 0.05, 0.085], [0, -0.28, 0.12]);                 // หูยาวแผ่ออกด้านข้าง ปลายห้อยลง
+  part(S, white, [-0.3, 0.13, -0.08], [0.2, 0.05, 0.085], [0, 0.28, -0.12]);
+  part(S, white, [0, 0.1, 0.13], [0.12, 0.1, 0.11]);                                        // ตัวกลม
+  part(S, white, [0.09, 0.165, 0.11], [0.04, 0.038, 0.04]); part(S, white, [-0.09, 0.165, 0.11], [0.04, 0.038, 0.04]);   // แขน
+  part(S, white, [0.055, 0.065, 0.215], [0.05, 0.05, 0.045]); part(S, white, [-0.055, 0.065, 0.215], [0.05, 0.05, 0.045]); // เท้า
+  part(new THREE.TorusGeometry(0.038, 0.017, 12, 22), white, [0.11, 0.07, 0.18], [1, 1, 1], [Math.PI / 2, 0, 0]);       // หางม้วน
+  // หน้า: ตาฟ้า แก้มชมพู ปาก ω (แนบผิวหัว)
+  const face = (mesh, x, z) => {
+    const d = new THREE.Vector3(x / HR.x, 0, (z + 0.05) / HR.z); const yy = Math.sqrt(Math.max(0.02, 1 - d.x * d.x - d.z * d.z));
+    mesh.position.set(x, HY + HR.y * yy, z); return mesh;
+  };
+  for (const sx of [-1, 1]) { const eye = new THREE.Mesh(S, blue); eye.scale.set(0.022, 0.014, 0.03); g.add(face(eye, sx * 0.065, -0.05)); }
+  for (const sx of [-1, 1]) {
+    const ch = new THREE.Mesh(new THREE.CircleGeometry(1, 20), pink); ch.scale.set(0.03, 0.022, 1); ch.userData.noShadow = true;
+    const x = sx * 0.112, z = 0.0; face(ch, x, z); ch.position.y += 0.002;
+    const n = new THREE.Vector3(x / (HR.x * HR.x), (ch.position.y - HY) / (HR.y * HR.y), (z + 0.05) / (HR.z * HR.z)).normalize();
+    ch.lookAt(ch.position.clone().add(n)); g.add(ch);
+  }
   const arc = new THREE.TorusGeometry(0.012, 0.004, 6, 12, Math.PI);
-  part(arc, blue, [-0.012, 0.158, -0.005], [1, 1, 1], [-Math.PI / 2, 0, Math.PI]); part(arc, blue, [0.012, 0.158, -0.005], [1, 1, 1], [-Math.PI / 2, 0, Math.PI]); // ปาก ω
-  part(new THREE.TorusGeometry(0.03, 0.007, 8, 18), new THREE.MeshStandardMaterial({ color: 0xd0d4da, metalness: 1, roughness: 0.3 }), [0, 0.08, -0.205], [1, 1, 1], [0, Math.PI / 2, 0]);  // ห่วงห้อย
+  for (const sx of [-1, 1]) { const m = new THREE.Mesh(arc, blue); face(m, sx * 0.012, -0.005); m.rotation.set(-Math.PI / 2, 0, Math.PI); g.add(m); }
+  part(new THREE.TorusGeometry(0.03, 0.007, 8, 18), new THREE.MeshStandardMaterial({ color: 0xd0d4da, metalness: 1, roughness: 0.3 }), [0, HY, -0.215], [1, 1, 1], [0, Math.PI / 2, 0]);  // ห่วงห้อย
   // ลายลิขสิทธิ์สลักไว้ใต้เท้า (หันไปทาง +z = ด้านล่างของตัวละคร)
   const stamp = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 0.075), new THREE.MeshStandardMaterial({ map: A.sanrioStamp(), roughness: 0.5 }));
-  stamp.position.set(0, 0.045, 0.2425); g.add(stamp);
+  stamp.position.set(0, 0.065, 0.2615); g.add(stamp);
   tag(g, "charm");
   return g;
 }
@@ -337,10 +454,10 @@ export function makeKeys() {
   const k2 = makeKey(0xd3d7de); k2.position.set(ringC.x - 0.1, 0.02, ringC.z - 0.1); k2.rotation.y = 0.55; g.add(k2);
   // โซ่บอลเล็กๆ จากห่วงไปที่ตัวชินนามอนโรล
   const charm = makeCinnamoroll();
-  const charmWrap = new THREE.Group(); charmWrap.position.set(0.36, 0, 0.0); charmWrap.rotation.y = Math.PI / 2; charmWrap.add(charm); g.add(charmWrap);
+  const charmWrap = new THREE.Group(); charmWrap.position.set(0.37, 0, 0.0); charmWrap.rotation.y = Math.PI / 2; charmWrap.add(charm); g.add(charmWrap);
   const ballM = new THREE.MeshStandardMaterial({ color: 0xd0d4da, metalness: 1, roughness: 0.3 }), ballG = new THREE.SphereGeometry(0.014, 10, 8);
-  const a = new THREE.Vector3(ringC.x + 0.11, 0.014, ringC.z), b = new THREE.Vector3(0.36 - 0.205, 0.08, 0.0);
-  const curve = new THREE.QuadraticBezierCurve3(a, new THREE.Vector3((a.x + b.x) / 2, 0.02, 0.09), b);
+  const a = new THREE.Vector3(ringC.x + 0.11, 0.014, ringC.z), b = new THREE.Vector3(0.37 - 0.215, 0.135, 0.0);
+  const curve = new THREE.QuadraticBezierCurve3(a, new THREE.Vector3((a.x + b.x) / 2, 0.03, 0.09), b);
   for (let i = 0; i <= 12; i++) { const s = new THREE.Mesh(ballG, ballM); s.position.copy(curve.getPoint(i / 12)); g.add(s); }
   return { g, charmWrap };
 }

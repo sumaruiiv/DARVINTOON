@@ -660,7 +660,8 @@ async function start() {
   calc.update = (dt) => CALC.update(dt);
 
   /* ---------- 8) กระเป๋าหูฟังมีสายของริว (ธีมม่วง) ---------- */
-  const P = makePouch();
+  const PH_X = 1.25;   // ตำแหน่งโทรศัพท์ที่เลื่อนเข้ามาตอนเสียบหูฟัง (เว้นช่องให้สายวิ่งระหว่างกระเป๋ากับเครื่อง)
+  const P = makePouch(PH_X);
   const pouch = addItem({
     id: "pouch", theme: "fox", w: P.W, d: P.D, h: P.H + 0.035, eyebrow: "ของริว", title: "กระเป๋าหูฟังของริว",
     desc: "กระเป๋าหนังสีดำใบแบนๆ ที่ริวเอาไว้เก็บหูฟังมีสายสีดำ (หัว Type-C) ไม่ให้สายพันกัน",
@@ -668,16 +669,9 @@ async function start() {
   pouch.body.add(P.g);
   const riwPhone = makePhoneModel("riw"); riwPhone.g.visible = false; P.g.add(riwPhone.g);
   riwPhone.g.traverse((m) => { m.userData.phoneDisp = true; });
-  let pState = "closed", flapK = 0, pullK = 0, plugK = 0, phoneK = 0, pPull = null, pPlug = null, asked = false, musicTex = null, cableKey = "";
-  const PH_X = 1.2;
-  const POS = {
-    inside: { L: V(-0.12, 0.08, -0.12), R: V(0.12, 0.08, -0.12), S: V(0, 0.08, 0.1), P: V(0.18, 0.08, 0.2), M: V(0.1, 0.08, 0.16) },
-    out: { L: V(-0.17, 0.13, -0.88), R: V(0.17, 0.13, -0.88), S: V(0, 0.1, -0.64), P: V(0.36, 0.07, -0.62), M: V(0.22, 0.09, -0.68) },
-    plug: { L: V(-0.17, 0.13, -0.88), R: V(0.17, 0.13, -0.88), S: V(0.32, 0.1, -0.48), P: V(PH_X, PHONE.h / 2, PHONE.d / 2 + 0.07), M: V(0.95, 0.07, 0.35) },
-  };
-  const lv = (a, b, k) => a.clone().lerp(b, k);
-  pouch.fit = () => { const ph = smooth(phoneK); return [lerp(1.0, 2.2, ph), lerp(lerp(1.0, 1.45, pullK), 1.95, ph)]; };
-  pouch.center = () => { const ph = smooth(phoneK); return V(lerp(0, 0.58, ph), pouch.h / 2, lerp(lerp(0, -0.22, pullK), 0.02, ph)); };
+  let pState = "closed", flapK = 0, pullK = 0, plugK = 0, phoneK = 0, pPull = null, pPlug = null, asked = false, musicTex = null;
+  pouch.fit = () => { const ph = smooth(phoneK), pk = smooth(pullK); return [lerp(lerp(1.0, 1.35, pk), 2.3, ph), lerp(lerp(1.0, 1.62, pk), 2.4, ph)]; };
+  pouch.center = () => { const ph = smooth(phoneK), pk = smooth(pullK); return V(lerp(lerp(0, 0.12, pk), 0.6, ph), pouch.h / 2, lerp(lerp(0, -0.3, pk), 0.08, ph)); };
   pouch.lockRotate = () => pState === "flap" || pState === "plugged";
   pouch.tip = () => ({
     closed: "แตะกระดุมที่ฝากระเป๋าเพื่อเปิด", flap: "เลื่อนขึ้นเพื่อดึงหูฟังออกมาจากกระเป๋า ↑",
@@ -719,22 +713,10 @@ async function start() {
     plugK = pPlug != null ? plugT : approach(plugK, plugT, 1.6, dt);
     P.flapPivot.rotation.x = -1.72 * easeInOut(flapK);   // ฝาตั้งขึ้น ไม่พับทับหูฟังที่ดึงออกมา
     P.snapM.emissiveIntensity = cur === pouch && pState === "closed" && introDone() ? 0.3 + 0.3 * Math.sin(t * 5) : 0;
-    // ตำแหน่งหูฟัง/สาย: ในกระเป๋า → ดึงออกมา → เสียบโทรศัพท์
+    // หูฟัง/สาย: ในกระเป๋า → ดึงออกมา (สายม้วนเป็นขด) → เสียบโทรศัพท์ (สายวิ่งอ้อม ไม่ทับเครื่อง)
     const pk = smooth(pullK), gk = smooth(plugK);
-    const at = (n) => lv(lv(POS.inside[n], POS.out[n], pk), POS.plug[n], gk);
-    const L = at("L"), Rr = at("R"), S = at("S"), PL = at("P"), M = at("M");
-    P.budL.position.copy(L); P.budR.position.copy(Rr); P.split.position.copy(S); P.plug.position.copy(PL);
-    P.budL.rotation.set(0, 0.2, 0); P.budR.rotation.set(0, -0.2, 0);
-    P.plug.rotation.set(0, lerp(-0.6, 0, gk), 0);
-    const ear = P.budL.parent; ear.visible = pullK > 0.01;
-    const keyNow = `${pullK.toFixed(3)}|${plugK.toFixed(3)}`;
-    if (ear.visible && keyNow !== cableKey) {
-      cableKey = keyNow;
-      const tail = (b) => b.position.clone().add(V(0, 0, 0.13).applyEuler(b.rotation));
-      P.cables[0].setPath([tail(P.budL), lv(tail(P.budL), S, 0.5).add(V(0, 0.02, 0.05)), S]);
-      P.cables[1].setPath([tail(P.budR), lv(tail(P.budR), S, 0.5).add(V(0, 0.02, 0.05)), S]);
-      P.cables[2].setPath([S, M, PL.clone().add(V(0, 0, 0.06).applyEuler(P.plug.rotation))]);
-    }
+    P.ear.visible = pullK > 0.01;
+    if (P.ear.visible) P.setPose(pk, gk);
     riwPhone.g.visible = phoneK > 0.01;
     riwPhone.g.position.set(lerp(2.8, PH_X, smooth(phoneK)), 0, 0);
     if (gk > 0.97 && musicTex) riwPhone.setScreen(musicTex);
@@ -761,6 +743,7 @@ async function start() {
   buds.fit = () => { const ph = smooth(dPhone); return [lerp(0.8, 2.05, ph), lerp(lerp(0.7, 1.25, dPull), 1.75, ph)]; };
   buds.center = () => { const ph = smooth(dPhone); return V(lerp(0, 0.6, ph), buds.h / 2, lerp(lerp(0, -0.28, dPull), -0.05, ph)); };
   buds.lockRotate = () => dState !== "closed";
+  buds.frontPitch = () => (dState === "lid" ? 0.42 : 0);   // เปิดฝาแล้วเอียงให้เห็นถาดด้านในกับหูฟังในหลุม
   buds.tip = () => ({
     closed: "แตะที่ปลอกหูฟังเพื่อเปิดฝา", lid: "เลื่อนขึ้นเพื่อดึงหูฟังออกมาจากปลอก ↑",
     linked: "หูฟังเชื่อมกับโทรศัพท์ของดาวินแล้ว · แตะที่โทรศัพท์เพื่อเปิดหน้าจอ",
@@ -780,7 +763,7 @@ async function start() {
     if (dState === "lid") return {
       move: (tx, ty) => { dPullP = clamp01(-ty / Math.max(90, H * 0.22)); },
       end: () => {
-        if (dPullP > 0.45) { dState = "linked"; bannerUntil = now() + 2.8; toast("หูฟังเชื่อมต่อกับโทรศัพท์ของดาวินแล้ว ♪"); }
+        if (dPullP > 0.45) { dState = "linked"; bannerUntil = now() + 2.8; faceFront(); toast("หูฟังเชื่อมต่อกับโทรศัพท์ของดาวินแล้ว ♪"); }
         dPullP = null; refresh();
       },
     };
@@ -801,8 +784,7 @@ async function start() {
     dPhone = approach(dPhone, phT, 1.7, dt);
     B2.lidPivot.rotation.x = -1.9 * easeInOut(lidK);
     const pk = smooth(dPull);
-    B2.bL.position.set(lerp(-0.14, -0.22, pk), lerp(0.15, 0.3, pk), lerp(-0.15, -0.78, pk)); B2.bL.rotation.set(0, lerp(0, 0.35, pk), 0);
-    B2.bR.position.set(lerp(0.14, 0.22, pk), lerp(0.15, 0.3, pk), lerp(-0.15, -0.78, pk)); B2.bR.rotation.set(0, lerp(0, -0.35, pk), 0);
+    B2.setPose(pk);
     const linked = phT && dState !== "off";
     B2.led.material.color.setHex(linked ? (Math.sin(t * 6) > 0 ? 0xffffff : 0x8fd0ff) : 0x3bd16f);
     davPhone.g.visible = dPhone > 0.01;
@@ -819,10 +801,13 @@ async function start() {
   /* ---------- 10) กุญแจบ้าน + พวงกุญแจชินนามอนโรลของดาวิน (ธีมฟ้า) ---------- */
   const K = makeKeys();
   const keys = addItem({
-    id: "keys", theme: "case", w: 1.42, d: 1.04, h: 0.17, eyebrow: "ของดาวิน", title: "กุญแจบ้านกับพวงกุญแจชินนามอนโรล",
+    id: "keys", theme: "case", w: 1.44, d: 1.1, h: 0.27, eyebrow: "ของดาวิน", title: "กุญแจบ้านกับพวงกุญแจชินนามอนโรล",
     desc: "กุญแจบ้านของดาวิน ห้อยพวงกุญแจชินนามอนโรลตัวโปรด ใต้เท้ามีลายลิขสิทธิ์ Sanrio สลักไว้ด้วย",
   });
   K.g.position.x = 0.08; keys.body.add(K.g);
+  // พื้นที่แตะล่องหนคลุมพวงกุญแจ (ของชิ้นเล็กมีช่องว่างเยอะ แตะตรงไหนก็หยิบได้) ใช้เฉพาะตอนอยู่บนโต๊ะ
+  const keysHit = new THREE.Mesh(new THREE.BoxGeometry(keys.w, keys.h, keys.d), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false }));
+  keysHit.position.y = keys.h / 2; keysHit.userData.deskOnly = true; keysHit.userData.noShadow = true; keys.body.add(keysHit);
   let wiggle = 0;
   keys.tip = () => "หมุนดูใต้เท้าชินนามอนโรลได้นะ · แตะที่ตัวน้องเพื่อเขย่าพวงกุญแจ";
   keys.onTap = (o) => { if (o.userData.charm) wiggle = 1; };
@@ -982,7 +967,7 @@ async function start() {
   function pickAll(cx, cy, objs) {
     ray.setFromCamera(ndc(cx, cy), camera);
     return ray.intersectObjects(objs, true).filter((h) => {
-      if (h.object.userData.noHit) return false;
+      if (h.object.userData.noHit || (cur && h.object.userData.deskOnly)) return false;
       for (let q = h.object; q; q = q.parent) if (!q.visible) return false;
       return true;
     });
