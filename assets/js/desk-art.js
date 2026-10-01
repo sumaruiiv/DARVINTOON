@@ -387,20 +387,23 @@ export function heartPath(x, cx, cy, s) {
 }
 export function albumCover() {
   const c = canvas(ALBUM_TX, ALBUM_TY), x = c.getContext("2d");
-  const g = x.createLinearGradient(0, 0, 512, 620); g.addColorStop(0, "#f6d7e6"); g.addColorStop(1, "#cfd8ff");
+  const g = x.createLinearGradient(0, 0, 512, 620); g.addColorStop(0, "#d99bbd"); g.addColorStop(1, "#9aa6dd");
   x.fillStyle = g; x.fillRect(0, 0, 512, 620);
-  const r = rng(21); for (let k = 0; k < 2200; k++) { x.fillStyle = `rgba(255,255,255,${r() * 0.18})`; x.fillRect(r() * 512, r() * 620, 1, 2); }
+  const r = rng(21); for (let k = 0; k < 2200; k++) { x.fillStyle = `rgba(255,255,255,${r() * 0.1})`; x.fillRect(r() * 512, r() * 620, 1, 2); }
   x.fillStyle = "#2b2b36"; x.fillRect(0, 70, 512, 74);
   for (let X = 8; X < 512; X += 34) { x.fillStyle = "#f6f0ff"; rr(x, X, 78, 18, 12, 3); x.fill(); rr(x, X, 124, 18, 12, 3); x.fill(); }
   x.fillStyle = "#fffaf5"; rr(x, 66, 210, 380, 230, 22); x.fill(); x.strokeStyle = "#b48ad6"; x.lineWidth = 4; rr(x, 78, 222, 356, 206, 16); x.stroke();
   T(x, "Movie Days", 256, 290, { font: `700 56px Inter, ${HAND}`, color: "#6c3a9c" });
   T(x, "ตั๋วหนังของ ดาวิน & ริว", 256, 356, { font: `28px ${HAND}`, color: "#2a5bd7", maxW: 330 });
   x.fillStyle = "#ff6f9f"; heartPath(x, 256, 404, 15); x.fill();
-  // ป๊อปคอร์น
-  x.save(); x.translate(400, 530);
-  x.fillStyle = "#fff"; x.beginPath(); x.moveTo(-34, -30); x.lineTo(34, -30); x.lineTo(24, 50); x.lineTo(-24, 50); x.closePath(); x.fill();
-  x.fillStyle = "#e5394a"; for (let k = -24; k < 30; k += 16) { x.beginPath(); x.moveTo(k, -30); x.lineTo(k + 8, -30); x.lineTo(k + 6, 50); x.lineTo(k + 2, 50); x.fill(); }
-  x.fillStyle = "#ffe7a6"; for (let k = 0; k < 9; k++) { x.beginPath(); x.arc(-28 + k * 7, -34 - (k % 3) * 8, 11, 0, TAU); x.fill(); }
+  // ถังป๊อปคอร์น (มีเส้นขอบ ให้เห็นชัดบนพื้นสี)
+  x.save(); x.translate(400, 528); x.lineJoin = "round";
+  x.fillStyle = "#fff6e6"; x.strokeStyle = "#7a3d5c"; x.lineWidth = 4;
+  x.beginPath(); x.moveTo(-36, -28); x.lineTo(36, -28); x.lineTo(26, 54); x.lineTo(-26, 54); x.closePath(); x.fill();
+  x.fillStyle = "#d8445a"; for (let k = -30; k < 34; k += 16) { x.beginPath(); x.moveTo(k, -28); x.lineTo(k + 8, -28); x.lineTo(k * 0.72 + 6, 54); x.lineTo(k * 0.72 + 1, 54); x.closePath(); x.fill(); }
+  x.beginPath(); x.moveTo(-36, -28); x.lineTo(36, -28); x.lineTo(26, 54); x.lineTo(-26, 54); x.closePath(); x.stroke();
+  x.fillStyle = "#fff1c4"; x.strokeStyle = "#c9a24a"; x.lineWidth = 2.5;
+  for (const [px, py, pr] of [[-26, -36, 12], [-9, -44, 13], [9, -40, 12], [25, -35, 11], [0, -30, 11], [-16, -28, 10], [17, -27, 10]]) { x.beginPath(); x.arc(px, py, pr, 0, TAU); x.fill(); x.stroke(); }
   x.restore();
   return c;
 }
@@ -464,7 +467,7 @@ export function lockScreen(owner) {
   x.fillStyle = "#fff"; heartPath(x, 84, cy + 56, 13); x.fill();
   T(x, "ข้อความ · ตอนนี้", 128, cy + 44, { font: `600 22px ${SANS}`, color: "#666", align: "left" });
   T(x, dav ? "ริว" : "ดาวิน", 128, cy + 80, { font: `700 30px ${SANS}`, color: "#111", align: "left" });
-  const msg = dav ? "ถึงบ้านแล้วนะ วันนี้ขอบคุณที่ไปดูหนังด้วยกัน… เราชอบดาวินนะ ♡" : "ริวว ขอบคุณสำหรับวันนี้นะ… เราชอบเธอนะ ♡ ฝันดีน้า";
+  const msg = dav ? "ถึงบ้านแล้วนะ วันนี้ขอบคุณที่ไปดูหนังด้วยกัน… รักดาวินนะ ♡" : "ริวว ขอบคุณสำหรับวันนี้นะ… เรารักริวนะ ♡ ฝันดีน้า";
   paragraph(x, msg, 58, cy + 132, { font: `500 27px ${SANS}`, color: "#222", maxW: W - 120, lh: 40, maxLines: 3 });
   T(x, "ปัดขึ้นเพื่อปลดล็อก", W / 2, H - 70, { font: `500 24px ${SANS}`, color: "rgba(255,255,255,.75)" });
   return tex(c);
@@ -503,4 +506,151 @@ export function pagesEdge() {
   x.fillStyle = "#f7f5ee"; x.fillRect(0, 0, 64, 64);
   x.fillStyle = "rgba(0,0,0,.07)"; for (let y = 0; y < 64; y += 3) x.fillRect(0, y, 64, 1);
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+
+/* ---------------- เครื่องคิดเลขวิทยาศาสตร์ (ของริว) ---------------- */
+export function calcKeyLabel(label, style) {
+  const c = canvas(128, 84), x = c.getContext("2d");
+  const bg = { num: "#e9eaee", fn: "#3b3e47", op: "#cfd2da", del: "#f08a2b", eq: "#4f7cff" }[style];
+  x.fillStyle = bg; x.fillRect(0, 0, 128, 84);
+  const g = x.createLinearGradient(0, 0, 0, 84); g.addColorStop(0, "rgba(255,255,255,.28)"); g.addColorStop(1, "rgba(0,0,0,.12)");
+  x.fillStyle = g; x.fillRect(0, 0, 128, 84);
+  const col = style === "num" || style === "op" ? "#1d1f26" : "#ffffff";
+  T(x, label, 64, 44, { font: `700 ${label.length > 3 ? 34 : 44}px Inter, Arial, ${SANS}`, color: col, maxW: 112, maxH: 60 });
+  return c;
+}
+export function calcLCD(c, expr, result, err) {
+  const x = c.getContext("2d"), W = c.width, H = c.height;
+  x.fillStyle = "#c7d1bd"; x.fillRect(0, 0, W, H);
+  const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "rgba(255,255,255,.18)"); g.addColorStop(1, "rgba(0,0,0,.08)");
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  T(x, "D", 16, 18, { font: `700 18px Inter, Arial`, color: "#2d3328", align: "left" });
+  T(x, "Math", 42, 18, { font: `700 16px Inter, Arial`, color: "#2d3328", align: "left" });
+  const font = `500 40px "Courier New", Inter, monospace`;
+  let e = expr || "";
+  while (e.length > 1 && textWidth(e, font) > W - 36) e = e.slice(1);
+  if (e !== (expr || "")) e = "…" + e.slice(1);
+  if (e) T(x, e, 16, 62, { font, color: "#1b2117", align: "left", maxW: W - 32 });
+  if (result) {
+    const rf = `700 ${err ? 44 : 58}px "Courier New", Inter, monospace`;
+    const w = Math.min(W - 32, textWidth(result, rf));
+    T(x, result, W - 16 - w, H - 46, { font: rf, color: "#141a10", align: "left", maxW: W - 32 });
+  }
+}
+
+/* ---------------- หน้าจอโทรศัพท์: เพลง / บลูทูธ / แผงตั้งค่า ---------------- */
+function phoneBg(x, W, H, dav) {
+  const g = x.createLinearGradient(0, 0, W, H);
+  if (dav) { g.addColorStop(0, "#5fb8ff"); g.addColorStop(0.55, "#2457d6"); g.addColorStop(1, "#0b1f63"); }
+  else { g.addColorStop(0, "#3b1f6e"); g.addColorStop(0.5, "#1b0f38"); g.addColorStop(1, "#07040f"); }
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.fillStyle = "#000"; x.beginPath(); x.arc(W / 2, 30, 14, 0, TAU); x.fill();
+}
+function btIcon(x, cx, cy, s, col) {
+  x.save(); x.translate(cx, cy); x.strokeStyle = col; x.lineWidth = s * 0.13; x.lineJoin = "round"; x.lineCap = "round";
+  x.beginPath(); x.moveTo(-s * 0.32, -s * 0.25); x.lineTo(s * 0.3, s * 0.25); x.lineTo(0, s * 0.5); x.lineTo(0, -s * 0.5); x.lineTo(s * 0.3, -s * 0.25); x.lineTo(-s * 0.32, s * 0.25); x.stroke();
+  x.restore();
+}
+function headIcon(x, cx, cy, s, col) {
+  x.save(); x.translate(cx, cy); x.strokeStyle = col; x.fillStyle = col; x.lineWidth = s * 0.12; x.lineCap = "round";
+  x.beginPath(); x.arc(0, 0, s * 0.42, Math.PI, 0); x.stroke();
+  rr(x, -s * 0.5, -s * 0.02, s * 0.22, s * 0.4, s * 0.08); x.fill(); rr(x, s * 0.28, -s * 0.02, s * 0.22, s * 0.4, s * 0.08); x.fill();
+  x.restore();
+}
+function nowPlaying(x, X, Y, W, title, credit, dark) {
+  x.fillStyle = dark ? "rgba(255,255,255,.14)" : "rgba(255,255,255,.88)"; rr(x, X, Y, W, 210, 34); x.fill();
+  const ag = x.createLinearGradient(X + 26, Y + 26, X + 136, Y + 136); ag.addColorStop(0, "#ff9ac4"); ag.addColorStop(1, "#8a5cff");
+  x.fillStyle = ag; rr(x, X + 26, Y + 26, 110, 110, 18); x.fill();
+  x.fillStyle = "#fff"; heartPath(x, X + 81, Y + 84, 24); x.fill();
+  const tc = dark ? "#fff" : "#111", sc = dark ? "rgba(255,255,255,.7)" : "#666";
+  T(x, title || "เพลงโปรด", X + 156, Y + 60, { font: `700 28px ${SANS}`, color: tc, align: "left", maxW: W - 180 });
+  T(x, credit || "", X + 156, Y + 100, { font: `500 21px ${SANS}`, color: sc, align: "left", maxW: W - 180 });
+  x.fillStyle = dark ? "rgba(255,255,255,.25)" : "rgba(0,0,0,.12)"; rr(x, X + 26, Y + 160, W - 52, 8, 4); x.fill();
+  x.fillStyle = dark ? "#fff" : "#7c3aed"; rr(x, X + 26, Y + 160, (W - 52) * 0.42, 8, 4); x.fill();
+  x.beginPath(); x.arc(X + 26 + (W - 52) * 0.42, Y + 164, 10, 0, TAU); x.fill();
+}
+// หน้าจอตอนเสียบหูฟังมีสาย (ของริว): เครื่องเล่นเพลงเต็มจอ
+export function musicScreen(owner, title, credit) {
+  const W = 540, H = 1140, c = canvas(W, H), x = c.getContext("2d"), dav = owner === "davin";
+  phoneBg(x, W, H, dav);
+  x.fillStyle = "rgba(0,0,0,.35)"; x.fillRect(0, 0, W, H);
+  T(x, "21:47", 40, 70, { font: `600 26px Inter, Arial`, color: "#fff", align: "left" });
+  headIcon(x, W - 60, 66, 30, "#fff");
+  x.fillStyle = "rgba(255,255,255,.92)"; rr(x, 40, 120, W - 80, 86, 43); x.fill();
+  headIcon(x, 92, 163, 40, "#7c3aed");
+  T(x, "เชื่อมต่อหูฟังแบบมีสายแล้ว", 130, 163, { font: `600 25px ${SANS}`, color: "#222", align: "left", maxW: W - 200 });
+  const ag = x.createLinearGradient(110, 260, 430, 580); ag.addColorStop(0, "#ff9ac4"); ag.addColorStop(1, "#8a5cff");
+  x.fillStyle = ag; rr(x, 110, 260, 320, 320, 40); x.fill();
+  x.fillStyle = "rgba(255,255,255,.95)"; heartPath(x, 270, 430, 70); x.fill();
+  T(x, title || "เพลงโปรด", W / 2, 660, { font: `700 34px ${SANS}`, color: "#fff", maxW: W - 80 });
+  T(x, credit || "", W / 2, 708, { font: `500 23px ${SANS}`, color: "rgba(255,255,255,.75)", maxW: W - 80 });
+  x.fillStyle = "rgba(255,255,255,.25)"; rr(x, 60, 780, W - 120, 10, 5); x.fill();
+  x.fillStyle = "#fff"; rr(x, 60, 780, (W - 120) * 0.38, 10, 5); x.fill(); x.beginPath(); x.arc(60 + (W - 120) * 0.38, 785, 13, 0, TAU); x.fill();
+  T(x, "1:24", 60, 822, { font: `500 20px Inter, Arial`, color: "rgba(255,255,255,.7)", align: "left" });
+  x.fillStyle = "#fff";
+  x.beginPath(); x.moveTo(170, 900); x.lineTo(130, 925); x.lineTo(170, 950); x.fill(); x.fillRect(122, 900, 8, 50);
+  x.beginPath(); x.arc(W / 2, 925, 52, 0, TAU); x.fill();
+  x.fillStyle = "#3b1f6e"; x.fillRect(W / 2 - 18, 902, 12, 46); x.fillRect(W / 2 + 6, 902, 12, 46);
+  x.fillStyle = "#fff"; x.beginPath(); x.moveTo(370, 900); x.lineTo(410, 925); x.lineTo(370, 950); x.fill(); x.fillRect(410, 900, 8, 50);
+  T(x, "เลื่อนลงที่สายหูฟังเพื่อถอดออก ↓", W / 2, H - 70, { font: `500 23px ${SANS}`, color: "rgba(255,255,255,.8)" });
+  return tex(c);
+}
+// หน้าจอล็อกของดาวินตอนเชื่อมหูฟังบลูทูธ (banner = แถบแจ้งว่าเพิ่งเชื่อมต่อ)
+export function btLockScreen(title, credit, banner) {
+  const W = 540, H = 1140, c = canvas(W, H), x = c.getContext("2d");
+  phoneBg(x, W, H, true);
+  btIcon(x, W - 70, 66, 30, "#fff");
+  headIcon(x, W - 120, 66, 28, "#fff");
+  T(x, "21:47", W / 2, 236, { font: `300 150px Inter, Arial, sans-serif`, color: "#fff" });
+  T(x, "ศุกร์ 13 มีนาคม", W / 2, 336, { font: `500 32px ${SANS}`, color: "rgba(255,255,255,.92)" });
+  if (banner) {
+    x.fillStyle = "rgba(255,255,255,.92)"; rr(x, 30, 400, W - 60, 120, 34); x.fill();
+    x.fillStyle = "#1f6bff"; x.beginPath(); x.arc(92, 460, 32, 0, TAU); x.fill(); btIcon(x, 92, 460, 34, "#fff");
+    T(x, "เชื่อมต่อแล้ว", 140, 440, { font: `700 28px ${SANS}`, color: "#111", align: "left" });
+    T(x, "หูฟังไร้สายของดาวิน", 140, 484, { font: `500 24px ${SANS}`, color: "#555", align: "left" });
+  }
+  nowPlaying(x, 30, banner ? 550 : 420, W - 60, title, credit, false);
+  T(x, "เลื่อนลงจากด้านบนเพื่อเปิดแผงตั้งค่า ↓", W / 2, H - 70, { font: `500 23px ${SANS}`, color: "rgba(255,255,255,.8)" });
+  return tex(c);
+}
+// แผงตั้งค่าด่วน (ปัดลงจากด้านบน) · ไอคอนบลูทูธคือช่องที่ 2 ของแถวแรก
+export const QUICK = { W: 540, H: 1140, tiles: [[40, 150, 140, 140], [200, 150, 140, 140], [360, 150, 140, 140], [40, 310, 140, 140], [200, 310, 140, 140], [360, 310, 140, 140]], bt: 1 };
+export function quickPanel(btOn, title, credit) {
+  const { W, H } = QUICK, c = canvas(W, H), x = c.getContext("2d");
+  phoneBg(x, W, H, true);
+  x.fillStyle = "rgba(10,14,30,.82)"; x.fillRect(0, 0, W, H);
+  T(x, "21:47", 40, 80, { font: `600 44px Inter, Arial`, color: "#fff", align: "left" });
+  T(x, "ศุกร์ 13 มี.ค.", 40, 118, { font: `500 22px ${SANS}`, color: "rgba(255,255,255,.7)", align: "left" });
+  const names = ["Wi-Fi", "บลูทูธ", "เสียง", "ไฟฉาย", "เครื่องบิน", "หมุนจอ"];
+  QUICK.tiles.forEach(([tx, ty, tw, th], i) => {
+    const on = i === 0 || i === 2 || (i === QUICK.bt && btOn);
+    x.fillStyle = on ? "#3d7bff" : "rgba(255,255,255,.14)"; rr(x, tx, ty, tw, th, 36); x.fill();
+    const ic = on ? "#fff" : "rgba(255,255,255,.75)";
+    if (i === QUICK.bt) btIcon(x, tx + tw / 2, ty + 56, 46, ic);
+    else if (i === 0) { x.strokeStyle = ic; x.lineWidth = 6; for (let k = 1; k <= 3; k++) { x.beginPath(); x.arc(tx + tw / 2, ty + 80, k * 14, -Math.PI * 0.75, -Math.PI * 0.25); x.stroke(); } }
+    else if (i === 2) { x.fillStyle = ic; x.fillRect(tx + 50, ty + 44, 14, 24); x.beginPath(); x.moveTo(tx + 64, ty + 44); x.lineTo(tx + 84, ty + 30); x.lineTo(tx + 84, ty + 82); x.lineTo(tx + 64, ty + 68); x.fill(); }
+    else { x.fillStyle = ic; x.beginPath(); x.arc(tx + tw / 2, ty + 56, 18, 0, TAU); x.fill(); }
+    T(x, names[i], tx + tw / 2, ty + 112, { font: `600 21px ${SANS}`, color: ic, maxW: tw - 16 });
+  });
+  x.fillStyle = "rgba(255,255,255,.14)"; rr(x, 40, 480, W - 80, 30, 15); x.fill();
+  x.fillStyle = "#fff"; rr(x, 40, 480, (W - 80) * 0.6, 30, 15); x.fill();
+  T(x, btOn ? "แตะไอคอนบลูทูธเพื่อตัดการเชื่อมต่อหูฟัง" : "ตัดการเชื่อมต่อแล้ว", W / 2, 570, { font: `600 24px ${SANS}`, color: btOn ? "#bcd3ff" : "#ffd1e3", maxW: W - 60 });
+  nowPlaying(x, 30, 620, W - 60, title, credit, true);
+  return tex(c);
+}
+
+/* ---------------- ตัวอักษรสลักใต้เท้าพวงกุญแจ / ป้ายเครื่องคิดเลข ---------------- */
+export function sanrioStamp() {
+  const c = canvas(256, 128), x = c.getContext("2d");
+  x.fillStyle = "#f4f4f8"; x.fillRect(0, 0, 256, 128);
+  T(x, "© SANRIO", 128, 50, { font: `700 40px Inter, Arial`, color: "#9a9aa8" });
+  T(x, "CO., LTD.", 128, 94, { font: `600 26px Inter, Arial`, color: "#a8a8b4" });
+  return tex(c);
+}
+export function calcBrand() {
+  const c = canvas(512, 96), x = c.getContext("2d");
+  T(x, "SCIENTIFIC CALCULATOR", 20, 48, { font: `700 30px Inter, Arial`, color: "#c9ccd6", align: "left", maxW: 330 });
+  x.fillStyle = "#ffd6e8"; rr(x, 370, 16, 126, 64, 14); x.fill();
+  T(x, "ของริว", 433, 49, { font: `30px ${HAND}`, color: "#6d28d9", maxW: 110 });
+  return tex(c);
 }
