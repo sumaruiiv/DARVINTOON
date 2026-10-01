@@ -88,7 +88,7 @@ function roundedPlane(w, h, r) {
 }
 
 /* ---------- กระเป๋าดินสอ ---------- */
-function buildCase() {
+export function buildCase() {
   const W = 4.4, H = 0.62, D = 1.46, R = 0.27;
   const root = new THREE.Group();
   const fabric = new THREE.MeshPhysicalMaterial({

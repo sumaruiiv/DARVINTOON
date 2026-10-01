@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="assets/css/features.css">
   <link rel="stylesheet" href="assets/css/music.css">
+  <link rel="stylesheet" href="assets/css/desk.css">
   <script type="importmap">
   { "imports": {
       "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
@@ -238,6 +239,35 @@
       <div class="fox-bubble" aria-live="polite"></div>
       <div class="fox-bed-stage" role="button" tabindex="0"><canvas aria-hidden="true"></canvas></div>
     </section>
+
+    <!-- โต๊ะ 3D: ของบนโต๊ะของดาวินกับริว -->
+    <section class="desk-sec wrap" id="desk">
+      <h2 class="row-title" data-reveal><span>โต๊ะของเรา.</span> ลากของเพื่อย้ายที่ได้ · แตะของชิ้นไหนก็ได้เพื่อหยิบขึ้นมาดู</h2>
+      <div class="desk-stage" id="desk-stage" data-reveal>
+        <canvas id="desk3d" aria-label="โต๊ะสามมิติ มีสมุดมังงะของริว กระเป๋าดินสอ อัลบั้มตั๋วหนัง รูปถ่าย โทรศัพท์ และถุงบราวนี่ ลากเพื่อย้าย แตะเพื่อหยิบขึ้นมาดู"></canvas>
+        <div class="desk-toast" id="desk-toast" role="status" aria-live="polite"></div>
+        <div class="desk-panel" id="desk-panel" aria-live="polite" hidden>
+          <p class="eyebrow" data-dp-eyebrow></p>
+          <h3 data-dp-title></h3>
+          <p class="desk-desc" data-dp-desc></p>
+          <p class="desk-tip" data-dp-tip hidden></p>
+          <div class="bp-actions" data-dp-actions></div>
+        </div>
+        <div class="desk-shout" id="desk-shout" role="dialog" aria-label="คำถามเรื่องบราวนี่" hidden>
+          <span class="shout-who" data-who></span>
+          <p class="shout-say" data-say></p>
+          <div class="shout-actions"><button type="button" class="btn sm" data-yes>เอา!</button><button type="button" class="btn sm ghost" data-no>ไม่เอาแล้ว</button></div>
+        </div>
+        <div class="desk-pop" id="desk-pop" role="dialog" aria-label="ข้อความ" hidden>
+          <div class="pop-card">
+            <span class="pop-ic" aria-hidden="true"></span>
+            <p>คนดี อย่ามัวแต่ใช้เวลากับหน้าจอนะ<br>พักบ้างนะคนดี ♡</p>
+            <button type="button" class="btn sm">ปิด</button>
+          </div>
+        </div>
+        <p class="stage-hint">ลากของเพื่อย้ายที่ · วางทับกันได้ · แตะเพื่อหยิบขึ้นมาดู</p>
+      </div>
+    </section>
   </main>
 
   <footer class="footer">
@@ -284,6 +314,7 @@
   <script type="module" src="assets/js/shelf3d.js"></script>
   <script type="module" src="assets/js/standee3d.js"></script>
   <script type="module" src="assets/js/foxworld.js"></script>
+  <script type="module" src="assets/js/desk3d.js"></script>
   <script type="module" src="assets/js/music.js"></script>
 </body>
 </html>

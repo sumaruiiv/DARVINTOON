@@ -1,0 +1,65 @@
+/* ====================== โต๊ะ 3D (ใต้ตุ๊กตาหมาจิ้งจอก) ====================== */
+.desk-sec { margin-top: 56px; }
+.desk-stage { position: relative; height: clamp(460px, 56vw, 680px); max-height: 82vh; overflow: hidden; border-radius: 28px; background: #3a2416;
+  box-shadow: inset 0 0 0 1px var(--line), var(--shadow-lg); user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+#desk3d { display: block; width: 100%; height: 100%; touch-action: pan-y; opacity: 0; transition: opacity .8s; }
+.desk-stage.webgl-ready #desk3d { opacity: 1; }
+.desk-stage.dragging #desk3d { cursor: grabbing !important; }
+.desk-stage::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; box-shadow: inset 0 0 80px rgba(30, 12, 2, .35); }
+.desk-stage.no-webgl::before { content: "อุปกรณ์นี้แสดงภาพ 3 มิติไม่ได้"; position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; color: #f3e3cf; }
+.desk-stage .stage-hint { left: 50%; right: auto; bottom: 10px; z-index: 3; transform: translateX(-50%); width: max-content; max-width: 92%; padding: 5px 14px; border-radius: 99px;
+  background: rgba(40, 22, 10, .55); color: #fbeedd; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: opacity .3s; }
+
+/* คำบรรยายใต้ของที่หยิบขึ้นมา */
+.desk-panel { position: absolute; left: 50%; bottom: 14px; z-index: 5; width: min(560px, calc(100% - 20px)); padding: 14px 16px 16px; border-radius: 22px; text-align: center;
+  background: var(--surface); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: var(--shadow-lg); color: var(--ink);
+  opacity: 0; pointer-events: none; transform: translate(-50%, 24px) scale(.97); transition: opacity .3s, transform .4s cubic-bezier(.2, .9, .25, 1.1); }
+.desk-panel.show { opacity: 1; pointer-events: auto; transform: translate(-50%, 0) scale(1); }
+.desk-panel .eyebrow { margin: 0 0 2px; }
+.desk-panel h3 { margin: 0 0 6px; font-size: 21px; line-height: 1.25; }
+.desk-desc { margin: 0 auto 6px; max-width: 46ch; font-size: 14.5px; line-height: 1.55; color: var(--muted); }
+.desk-tip { margin: 0 0 10px; font-size: 13.5px; font-weight: 600; color: var(--accent); }
+.desk-tip[hidden] { display: none; }
+.desk-panel .bp-actions .btn:disabled { opacity: .45; pointer-events: none; }
+
+/* ข้อความลอยด้านบน (ชื่อตุ๊กตา/ดินสอ, คำตอบจากคนในบ้าน) */
+.desk-toast { position: absolute; left: 50%; top: 14px; z-index: 6; max-width: calc(100% - 24px); padding: 9px 18px; border-radius: 999px; text-align: center;
+  background: var(--surface); color: var(--ink); font-weight: 600; font-size: 14.5px; box-shadow: var(--shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  opacity: 0; pointer-events: none; transform: translate(-50%, -10px); transition: .3s; }
+.desk-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* เสียงตะโกนถามเรื่องบราวนี่ */
+.desk-shout { position: absolute; left: 50%; top: 14px; z-index: 7; width: min(420px, calc(100% - 24px)); padding: 12px 16px 14px; text-align: center;
+  background: #fffdf7; color: #2a1a3a; border-radius: 24px; box-shadow: 0 0 0 3px #2a1a3a, 0 14px 34px rgba(0, 0, 0, .35);
+  opacity: 0; transform: translate(-50%, -14px) scale(.9); transition: opacity .25s, transform .35s cubic-bezier(.2, 1.4, .3, 1); }
+.desk-shout.show { opacity: 1; transform: translate(-50%, 0) scale(1); animation: shout-shake .5s .15s; }
+.desk-shout::after { content: ""; position: absolute; left: 22%; bottom: -14px; width: 26px; height: 18px; background: #fffdf7; clip-path: polygon(0 0, 100% 0, 20% 100%);
+  filter: drop-shadow(0 3px 0 #2a1a3a); }
+.shout-who { display: inline-block; margin-bottom: 4px; padding: 2px 10px; border-radius: 99px; background: #ffe2ef; color: #b0306a; font-size: 12.5px; font-weight: 700; }
+:root[data-world="fox"] .shout-who { background: #efe2ff; color: #6d28d9; }
+.shout-say { margin: 2px 0 10px; font: 700 clamp(20px, 3.4vw, 26px)/1.3 Itim, var(--font); letter-spacing: .01em; overflow-wrap: anywhere; }
+.shout-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.desk-shout .btn.ghost { color: #2a1a3a; }
+@keyframes shout-shake { 20% { transform: translate(-51%, 0) rotate(-1.5deg) scale(1.03); } 40% { transform: translate(-49%, 0) rotate(1.5deg); } 60% { transform: translate(-50.5%, 0) rotate(-1deg); } 100% { transform: translate(-50%, 0); } }
+
+/* ป๊อปอัปพักสายตา */
+.desk-pop { position: absolute; inset: 0; z-index: 8; display: grid; place-items: center; padding: 16px; background: rgba(20, 8, 30, .45); opacity: 0; transition: opacity .25s; }
+.desk-pop.show { opacity: 1; }
+.pop-card { width: min(360px, 100%); padding: 22px 20px 18px; border-radius: 26px; text-align: center; background: var(--surface-solid); color: var(--ink); box-shadow: var(--shadow-lg);
+  transform: scale(.9); transition: transform .35s cubic-bezier(.2, 1.4, .3, 1); }
+.desk-pop.show .pop-card { transform: none; }
+.pop-card p { margin: 10px 0 16px; font: 600 18px/1.55 Itim, var(--font); }
+.pop-ic { display: block; width: 46px; height: 46px; margin: 0 auto; background: linear-gradient(135deg, #ffb3cf, #ff4f8f); -webkit-mask: var(--heart) center / contain no-repeat; mask: var(--heart) center / contain no-repeat; animation: beat 1.3s ease-in-out infinite; }
+
+.desk-pop[hidden], .desk-shout[hidden], .desk-panel[hidden] { display: none; }
+
+@media (max-width: 699px) {
+  .desk-stage { width: 100%; height: min(130vw, 78vh); min-height: 380px; border-radius: 22px; }
+  .desk-panel { bottom: 8px; padding: 10px 12px 12px; border-radius: 18px; }
+  .desk-panel h3 { font-size: 17px; margin-bottom: 4px; }
+  .desk-desc { font-size: 13px; line-height: 1.45; margin-bottom: 4px; }
+  .desk-tip { font-size: 12.5px; margin-bottom: 8px; }
+  .desk-panel .btn.sm { padding: 7px 12px; font-size: 13px; }
+  .desk-stage .stage-hint { font-size: 11.5px; }
+}
+@media (prefers-reduced-motion: reduce) { .desk-shout.show { animation: none; } }

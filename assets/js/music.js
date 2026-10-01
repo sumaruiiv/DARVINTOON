@@ -25,12 +25,11 @@ const EP_TRACKS = {
 const isReader = document.body.classList.contains("reader");
 const EP = Math.min(Math.max(parseInt(new URLSearchParams(location.search).get("ep") || "1", 10) || 1, 1), 8);
 const PLAYLIST = isReader ? EP_TRACKS[EP] : [T.home];
-const PREF = "dvn-music-off";
+// เพลงเปิดไว้เสมอทุกหน้า (เคยจำค่า "หยุดเพลง" ไว้ในเครื่อง → ล้างทิ้ง ไม่จำแล้ว)
+try { localStorage.removeItem("dvn-music-off"); } catch {}
 const FADE_OUT = 1400, FADE_IN = 1100;
 const fmt = (s) => { s = Math.max(0, Math.floor(s || 0)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const prefOff = () => { try { return localStorage.getItem(PREF) === "1"; } catch { return false; } };
-const setPref = (off) => { try { off ? localStorage.setItem(PREF, "1") : localStorage.removeItem(PREF); } catch {} };
 
 /* ---------- หน้าตา: แผ่นเสียงจิ๋ว (ย่อ) ⇄ การ์ดเพลง (ขยาย) ---------- */
 const ui = document.createElement("div");
@@ -94,17 +93,23 @@ function ensureGraph() {          // เรียกเฉพาะตอนผ�
   if (VOLUME_WORKS) return;
   try {
     if ("audioSession" in navigator) navigator.audioSession.type = "playback";   // ให้มีเสียงแม้เปิดโหมดเงียบ
-    if (!actx) {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return;
-      actx = new AC();
-      gain = actx.createGain();
-      gain.gain.value = vol;
-      actx.createMediaElementSource(audio).connect(gain);
-      gain.connect(actx.destination);
-    }
-    if (actx.state !== "running") actx.resume().catch(() => {});
-  } catch { gain = null; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!actx) actx = new AC();
+    if (actx.state === "running") connectGraph();
+    else actx.resume().then(connectGraph, () => {});
+  } catch {}
+}
+// ต่อเสียงเข้า Web Audio หลังระบบเสียงตื่นแล้วเท่านั้น (ถ้าต่อตอนยังหลับ เพลงจะเล่นแต่ไม่มีเสียง) · ถ้าไม่ตื่นก็เล่นแบบปกติไป
+function connectGraph() {
+  if (gain || !actx || actx.state !== "running") return;
+  try {
+    const g = actx.createGain();
+    g.gain.value = vol;
+    actx.createMediaElementSource(audio).connect(g);
+    g.connect(actx.destination);
+    gain = g;
+  } catch {}
 }
 let vol = 1;
 function setVol(v) {
@@ -113,7 +118,7 @@ function setVol(v) {
   else audio.volume = vol;
 }
 
-let trackIdx = -1, wantPlay = false, everPlayed = false, dragging = false, fading = false;
+let trackIdx = -1, wantPlay = true, everPlayed = false, dragging = false, fading = false;
 const saved = {};          // ตำแหน่งที่ค้างไว้ของแต่ละเพลง (เวลาเลื่อนกลับไปช่วงหน้าเดิม)
 const cur = () => PLAYLIST[trackIdx];
 const resumeAt = (i) => (PLAYLIST[i].fromPage ? undefined : saved[i]);   // เพลงหน้า 9 เริ่มที่จุดเริ่มเสมอ (คิดถึงแต่ = 0:05)
@@ -164,7 +169,7 @@ function fitTitle() {
 
 /* ---------- เล่น / หยุด ---------- */
 function play() {
-  ensureGraph();
+  if (actx && actx.state !== "running") actx.resume().catch(() => {});
   const p = audio.play();
   if (p && p.catch) p.catch((err) => {
     if (err && err.name === "AbortError") return;      // ถูกเปลี่ยนเพลงกลางทาง ไม่ใช่ปัญหา
@@ -173,17 +178,17 @@ function play() {
   });
 }
 function userPlay() {
-  wantPlay = true; setPref(false);
+  wantPlay = true;
   const want = wantedIdx();
   if (want !== trackIdx && !fading) loadTrack(want, resumeAt(want));
   if (!fading) { setVol(1); play(); }
 }
 function userPause() {
-  wantPlay = false; setPref(true);
+  wantPlay = false;
   rampId++; fading = false; setVol(1);
   audio.pause();
 }
-playBtn.addEventListener("click", () => (audio.paused || !wantPlay ? userPlay() : userPause()));
+playBtn.addEventListener("click", () => { ensureGraph(); audio.paused || !wantPlay ? userPlay() : userPause(); });
 
 audio.addEventListener("play", () => setPlaying(true));
 let shownSrc = "", npT = 0;
@@ -217,17 +222,19 @@ if ("mediaSession" in navigator) {
 // เบราว์เซอร์ไม่ให้เปิดเสียงก่อนผู้อ่านโต้ตอบ → ลองเล่นทันที ถ้าไม่ได้ จะเริ่มเมื่อแตะ/คลิกหน้าเว็บครั้งแรก
 // (ถ้าผู้อ่านเคยกดหยุดเพลงไว้ จะไม่เปิดเองอีก จนกว่าจะกดเล่นเอง)
 loadTrack(wantedIdx(), undefined);
-if (!prefOff()) {
-  wantPlay = true;
-  if (VOLUME_WORKS) play();             // บางเครื่องอนุญาตให้เล่นอัตโนมัติได้เลย
-  const EVTS = ["pointerup", "touchend", "click", "keydown"];
+{
+  play();                               // ลองเล่นทันที (เครื่องที่อนุญาต หรือกดลิงก์มาจากหน้าอื่นของเว็บ จะมีเพลงเลย)
+  // ถ้าเบราว์เซอร์ยังไม่ยอม: เริ่มทันทีที่ผู้อ่านแตะ/คลิก/กดปุ่มใดๆ ครั้งแรก
   // (คอยฟังต่อไปด้วย เผื่อเพลงโดนเบราว์เซอร์หยุดเอง เช่น กดย้อนกลับมาหน้านี้ หรือมีสายเข้า → แตะครั้งถัดไปเพลงจะเล่นต่อ)
+  const EVTS = ["touchstart", "pointerdown", "mousedown", "pointerup", "touchend", "click", "keydown"];
   const first = (e) => {
     if (ui.contains(e.target)) return;   // แตะที่ตัวเล่นเพลง ให้ปุ่มจัดการเอง
-    if (!wantPlay || fading) return;
-    if (audio.paused) userPlay(); else ensureGraph();
+    if (!wantPlay || fading) return;     // ผู้อ่านกดหยุดเอง → ไม่ไปเปิดให้
+    if (e.type !== "touchstart" && e.type !== "pointerdown" && e.type !== "mousedown") ensureGraph();
+    if (audio.paused) userPlay();
   };
-  EVTS.forEach((n) => addEventListener(n, first, true));
+  EVTS.forEach((n) => addEventListener(n, first, { capture: true, passive: true }));
+  audio.addEventListener("canplay", () => { if (wantPlay && !everPlayed && audio.paused && !fading) play(); }, { once: true });
 }
 addEventListener("pageshow", (e) => { if (e.persisted && wantPlay && audio.paused) play(); });
 // กลับมาที่แท็บ/ปลดล็อกจอ: ปลุกระบบเสียงของ iPhone/iPad ที่อาจถูกพักไว้

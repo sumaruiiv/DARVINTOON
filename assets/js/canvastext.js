@@ -53,6 +53,14 @@ function layout(text, font, color) {
   return { ...ink, size, W, H };
 }
 
+/** ความกว้างของข้อความ (วัดจาก DOM จึงถูกต้องบน iPad ด้วย) ใช้ตัดบรรทัด */
+export function textWidth(text, font) {
+  const w = domWidth(text, font);
+  if (w) return w;
+  sctx.font = font;
+  return sctx.measureText(text).width;
+}
+
 /**
  * วาดข้อความให้อยู่กึ่งกลาง (cx, cy) และไม่กว้างเกิน maxW (สูงไม่เกิน maxH ถ้ากำหนด)
  * align: "center" | "left" (ถ้า left จะชิดซ้ายที่ cx)
